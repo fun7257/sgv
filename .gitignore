@@ -1,0 +1,40 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go toolchain
+*.out
+
+# Dependency directories (remove the comment below to include it)
+vendor/
+
+# Go module cache
+.go.mod
+.go.sum
+
+# IDE-specific files
+.idea/
+.vscode/
+
+# Build outputs
+build/
+dist/
+
+# Log files
+*.log
+
+# Environment variables
+.env
+.env.*
+
+# OS generated files
+.DS_Store
+thumbs.db
+
+# program
+sgv
