@@ -38,7 +38,9 @@ func GetCurrentVersion() (string, error) {
 	}
 
 	// The symlink points to a directory inside VERSIONS_DIR, so we need to get the base name.
-	return filepath.Base(linkPath), nil
+	// We need to get the version name (e.g., "go1.17") from the symlink path.
+	versionDir := filepath.Base(filepath.Dir(linkPath))
+	return versionDir, nil
 }
 
 // GoVersion represents a Go version from the remote API.
