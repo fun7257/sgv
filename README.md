@@ -9,6 +9,7 @@ sgv (Simple Go Version) is a lightweight command-line tool for managing multiple
 *   **List Local Versions:** View all Go versions installed by sgv.
 *   **List Remote Versions:** See available Go versions from the official Go website.
 *   **Uninstall Go Versions:** Remove installed Go versions.
+*   **Display Version Information:** Show the build Go version and commit hash of sgv itself.
 
 ## Installation
 
@@ -16,7 +17,7 @@ To install `sgv`, make sure you have Go installed (any version will do for build
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/sgv.git # Replace with your actual repo URL
+    git clone https://github.com/fun7257/sgv.git
     cd sgv
     ```
 
@@ -100,6 +101,14 @@ Example:
 *   `sgv uninstall 1.22.1`
 
 **Note:** You cannot uninstall the currently active Go version. You must switch to another version first.
+
+### Display SGV Version
+
+To display the Go version used to build `sgv` and its commit hash:
+
+```bash
+sgv version
+```
 
 ## Contributing
 
