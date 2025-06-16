@@ -26,6 +26,34 @@ To install `sgv`, make sure you have Go installed (any version will do for build
     ```
     This will compile `sgv` and place the executable in your `$GOPATH/bin` (or `$GOBIN`) directory, making it available in your PATH.
 
+### Environment Variables Setup
+
+After installing `sgv` and your first Go version, you need to set up some environment variables to make `go` commands work correctly. Add the following lines to your shell profile (e.g., `~/.zshrc`, `~/.bashrc`, `~/.profile`):
+
+```bash
+export SGV_ROOT="$HOME/.sgv"
+export GOROOT="$SGV_ROOT/current"
+export PATH="$GOROOT/bin:$HOME/go/bin:$PATH"
+unset GOPATH
+```
+
+**For `~/.zshrc` users, you can append these lines directly by running:**
+
+```bash
+cat << EOF >> ~/.zshrc
+export SGV_ROOT="$HOME/.sgv"
+export GOROOT="$SGV_ROOT/current"
+export PATH="$GOROOT/bin:$HOME/go/bin:$PATH"
+unset GOPATH
+EOF
+```
+
+After adding these lines, remember to `source` your shell profile to apply the changes:
+
+```bash
+source ~/.zshrc # Or ~/.bashrc, ~/.profile, etc.
+```
+
 ## Usage
 
 ### Install or Switch Go Version
