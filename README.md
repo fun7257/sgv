@@ -40,7 +40,7 @@ unset GOPATH
 **For `~/.zshrc` users, you can append these lines directly by running:**
 
 ```bash
-cat << EOF >> ~/.zshrc
+cat << 'EOF' >> ~/.zshrc
 export SGV_ROOT="$HOME/.sgv"
 export GOROOT="$SGV_ROOT/current"
 export PATH="$GOROOT/bin:$HOME/go/bin:$PATH"
