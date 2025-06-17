@@ -1,11 +1,12 @@
 module github.com/fun7257/sgv
 
-go 1.24
+go 1.24.0
 
 require (
 	github.com/fatih/color v1.18.0
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/spf13/cobra v1.9.1
+	golang.org/x/mod v0.19.0
 )
 
 require (
