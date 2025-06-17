@@ -5,6 +5,6 @@ clean:
 	rm -f sgv
 
 install:
-	go install -o sgv .
+	go install .
 
 .PHONY: build clean install
