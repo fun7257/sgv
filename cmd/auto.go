@@ -26,8 +26,6 @@ var autoCmd = &cobra.Command{
 			return
 		}
 
-		fmt.Printf("go.mod requires Go version: %s\n", goModVersion)
-
 		// Check if the go.mod version is supported
 		if !isGoVersionSupported(goModVersion) {
 			fmt.Fprintf(os.Stderr, "Error: The Go version required by go.mod (%s) is not supported. sgv only supports Go 1.13 and later.\n", goModVersion)
@@ -50,22 +48,26 @@ var autoCmd = &cobra.Command{
 			}
 		}
 
+		currentActiveVersion, err := version.GetCurrentVersion()
+		if err != nil {
+			// If we can't get current version, proceed with suitableVersion
+			currentActiveVersion = ""
+		}
+
+		// If current active version is already sufficient, do nothing.
+		// This covers cases where currentActiveVersion >= goModVersion
+		// or currentActiveVersion == suitableVersion.
+		if currentActiveVersion != "" && semver.Compare(normalizeGoVersion(currentActiveVersion), normalizeGoVersion(goModVersion)) >= 0 {
+			return // No output, no switch needed
+		}
+
 		if suitableVersion != "" {
-			currentActiveVersion, err := version.GetCurrentVersion()
-			if err == nil && currentActiveVersion == suitableVersion {
-				fmt.Printf("Go version %s is already the most suitable version for this project.\n", suitableVersion)
-				return
+			// If suitableVersion is the same as currentActiveVersion, no switch needed.
+			if currentActiveVersion != "" && suitableVersion == currentActiveVersion {
+				return // No output, no switch needed
 			}
 
-			currentActiveVersion, err = version.GetCurrentVersion()
-			if err == nil && currentActiveVersion != "" {
-				// If current active version is newer than the suitable version, don't switch
-				if semver.Compare(normalizeGoVersion(currentActiveVersion), normalizeGoVersion(suitableVersion)) > 0 {
-					fmt.Printf("Current Go version %s is newer than the go.mod requirement. No switch needed.\n", currentActiveVersion)
-					return
-				}
-			}
-
+			fmt.Printf("go.mod requires Go version: %s\n", goModVersion)
 			fmt.Printf("Found suitable installed version: %s. Switching...\n", suitableVersion)
 			if err = version.SwitchToVersion(suitableVersion); err != nil {
 				fmt.Fprintf(os.Stderr, "Error switching to Go version %s: %v\n", suitableVersion, err)

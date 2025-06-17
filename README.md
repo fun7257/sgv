@@ -100,7 +100,7 @@ This command will:
 2.  If a `go.mod` file is found, it will read the required Go version.
 3.  It will then find the smallest installed Go version that meets or exceeds the `go.mod` requirement.
 4.  If a suitable version is found and it's not already the active version, `sgv` will switch to it.
-5.  If the current active Go version is newer than the calculated suitable version, `sgv` will inform you and no switch will occur.
+5.  If the current active Go version already meets or exceeds the `go.mod` requirement, no switch will occur and no output will be displayed.
 6.  If no suitable installed version is found, it will prompt you to install a compatible version.
 7.  If the current directory is not a Go project (no `go.mod` found), it will inform you and do nothing.
 
