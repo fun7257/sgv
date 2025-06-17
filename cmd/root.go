@@ -13,11 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	goVersion string
-	commit    string
-)
-
 var rootCmd = &cobra.Command{
 	Use:   "sgv",
 	Short: "SGV is a Go Version manager",
@@ -54,11 +49,6 @@ This tool allows you to easily install and switch between different Go versions.
 
 		fmt.Printf("Successfully switched to Go version %s\n", versionStr)
 	},
-}
-
-func SetBuildInfo(version, cmt string) {
-	goVersion = version
-	commit = cmt
 }
 
 func Execute() {

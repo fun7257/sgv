@@ -7,10 +7,35 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime/debug" // Add this import
 	"sort"
 
 	"github.com/fun7257/sgv/internal/config"
 )
+
+var (
+	sgvVersion = "dev" // Variable to hold SGV's own version
+	sgvCommit  = "none"
+	goVersion  = "unknown" // Variable to hold the Go version used to build SGV
+)
+
+// GetSGVVersion reads build info and returns SGV's version string.
+func GetSGVVersion() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		if info.Main.Version != "" {
+			sgvVersion = info.Main.Version
+		}
+		for _, setting := range info.Settings {
+			switch setting.Key {
+			case "vcs.revision":
+				sgvCommit = setting.Value
+			}
+		}
+
+		goVersion = info.GoVersion
+	}
+	return fmt.Sprintf("%s (commit: %s, goVersion: %s)", sgvVersion, sgvCommit, goVersion)
+}
 
 // GetLocalVersions reads the VERSIONS_DIR and returns a sorted list of installed version names.
 func GetLocalVersions() ([]string, error) {
