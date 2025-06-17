@@ -59,3 +59,15 @@ func isGoVersionCompatible(candidateVersion, requiredVersion string) bool {
 	required := normalizeGoVersion(requiredVersion)
 	return semver.Compare(candidate, required) >= 0
 }
+
+// isGoVersionSupported checks if the given Go version is 1.13 or later.
+func isGoVersionSupported(v string) bool {
+	// Normalize to semver format (e.g., "go1.13" -> "v1.13")
+	normalizedVersion := normalizeGoVersion(v)
+
+	// Define the minimum supported version
+	minSupportedVersion := normalizeGoVersion("go1.13")
+
+	// Compare using semver.Compare
+	return semver.Compare(normalizedVersion, minSupportedVersion) >= 0
+}

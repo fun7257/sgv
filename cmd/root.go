@@ -28,6 +28,12 @@ This tool allows you to easily install and switch between different Go versions.
 			versionStr = "go" + versionStr
 		}
 
+		// Check if the requested version is supported
+		if !isGoVersionSupported(versionStr) {
+			fmt.Fprintf(os.Stderr, "Error: Go version %s is not supported. sgv only supports Go 1.13 and later.\n", versionStr)
+			os.Exit(1)
+		}
+
 		goModVersion, err := findGoModVersion()
 		if err != nil {
 			// If there's an error finding go.mod, it means it's not a Go project or an error occurred.

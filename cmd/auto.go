@@ -28,6 +28,12 @@ var autoCmd = &cobra.Command{
 
 		fmt.Printf("go.mod requires Go version: %s\n", goModVersion)
 
+		// Check if the go.mod version is supported
+		if !isGoVersionSupported(goModVersion) {
+			fmt.Fprintf(os.Stderr, "Error: The Go version required by go.mod (%s) is not supported. sgv only supports Go 1.13 and later.\n", goModVersion)
+			os.Exit(1)
+		}
+
 		localVersions, err := version.GetLocalVersions()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error getting local versions: %v\n", err)
@@ -37,7 +43,7 @@ var autoCmd = &cobra.Command{
 		var suitableVersion string
 		// Find the smallest installed version that is >= goModVersion
 		for _, lv := range localVersions {
-			if isGoVersionCompatible(lv, goModVersion) {
+			if isGoVersionSupported(lv) && isGoVersionCompatible(lv, goModVersion) {
 				if suitableVersion == "" || semver.Compare(normalizeGoVersion(lv), normalizeGoVersion(suitableVersion)) < 0 {
 					suitableVersion = lv
 				}

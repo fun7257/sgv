@@ -2,6 +2,8 @@
 
 sgv (Simple Go Version) is a lightweight command-line tool for managing multiple Go versions on your system. It allows you to easily install, switch between, list, and uninstall different Go versions.
 
+**Note:** sgv only supports Go versions 1.13 and later.
+
 ## Features
 
 *   **Install Go Versions:** Download and install specific Go versions.

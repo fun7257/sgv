@@ -23,6 +23,12 @@ var installCmd = &cobra.Command{
 			versionToInstall = "go" + versionToInstall
 		}
 
+		// Check if the requested version is supported
+		if !isGoVersionSupported(versionToInstall) {
+			fmt.Fprintf(os.Stderr, "Error: Go version %s is not supported. sgv only supports Go 1.13 and later.\n", versionToInstall)
+			os.Exit(1)
+		}
+
 		fmt.Printf("Installing Go version %s...\n", versionToInstall)
 		if err := installer.Install(versionToInstall); err != nil {
 			fmt.Fprintf(os.Stderr, "Error installing Go version %s: %v\n", versionToInstall, err)
