@@ -57,8 +57,17 @@ var autoCmd = &cobra.Command{
 				return
 			}
 
+			currentActiveVersion, err = version.GetCurrentVersion()
+			if err == nil && currentActiveVersion != "" {
+				// If current active version is newer than the suitable version, don't switch
+				if semver.Compare(normalizeGoVersion(currentActiveVersion), normalizeGoVersion(suitableVersion)) > 0 {
+					fmt.Printf("Current Go version %s is newer than the go.mod requirement. No switch needed.\n", currentActiveVersion)
+					return
+				}
+			}
+
 			fmt.Printf("Found suitable installed version: %s. Switching...\n", suitableVersion)
-			if err := version.SwitchToVersion(suitableVersion); err != nil {
+			if err = version.SwitchToVersion(suitableVersion); err != nil {
 				fmt.Fprintf(os.Stderr, "Error switching to Go version %s: %v\n", suitableVersion, err)
 				os.Exit(1)
 			}
