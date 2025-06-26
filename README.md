@@ -9,6 +9,7 @@ sgv (Simple Go Version) is a lightweight command-line tool for managing multiple
 *   **Install Go Versions:** Download and install specific Go versions.
 *   **Switch Go Versions:** Easily switch between installed Go versions.
 *   **Auto-switch Go Versions:** Automatically switch to the most suitable Go version for the current Go project based on `go.mod`.
+*   **Update to Latest Go:** Check for the latest Go version, install it if needed, and switch to it.
 *   **List Local Versions:** View all Go versions installed by sgv.
 *   **Uninstall Go Versions:** Remove installed Go versions.
 *   **Display Version Information:** Show the build Go version and commit hash of sgv itself.
@@ -103,6 +104,19 @@ This command will:
 5.  If the current active Go version already meets or exceeds the `go.mod` requirement, no switch will occur and no output will be displayed.
 6.  If no suitable installed version is found, it will prompt you to install a compatible version.
 7.  If the current directory is not a Go project (no `go.mod` found), it will inform you and do nothing.
+
+### Update to the Latest Go Version
+
+To check for the latest Go version, install it if it's not already installed, and switch to it:
+
+```bash
+sgv update
+```
+
+This command will:
+1. Fetch the latest available Go version.
+2. If the latest version is not already installed, it will be downloaded and installed.
+3. Switch the active Go version to the latest version.
 
 ### List Installed Go Versions
 

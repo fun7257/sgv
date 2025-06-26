@@ -95,6 +95,22 @@ func GetRemoteVersions() ([]GoVersion, error) {
 	return versions, nil
 }
 
+// GetLatestGoVersion fetches the latest stable Go version from the official Go website.
+func GetLatestGoVersion() (string, error) {
+	versions, err := GetRemoteVersions()
+	if err != nil {
+		return "", err
+	}
+
+	for _, v := range versions {
+		if v.Stable {
+			return v.Version, nil
+		}
+	}
+
+	return "", fmt.Errorf("no stable Go version found")
+}
+
 // SwitchToVersion removes the existing CURRENT_SYMLINK and creates a new one.
 func SwitchToVersion(version string) error {
 	// Remove existing symlink if it exists
