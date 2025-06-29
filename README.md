@@ -128,6 +128,20 @@ sgv list
 
 This will show a list of installed versions, with the currently active version marked.
 
+### List Minor Versions of a Go Version
+
+To see all minor versions of a specific Go version:
+
+```bash
+sgv sub <major_version>
+```
+
+Example:
+
+*   `sgv sub 1.22`
+
+This will show a list of all available Go 1.22.x versions, with currently installed versions marked.
+
 ### Uninstall a Go Version
 
 To remove an installed Go version:
