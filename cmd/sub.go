@@ -2,9 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
-	"net/http"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -31,7 +28,7 @@ For example: sgv sub 1.22`,
 			return fmt.Errorf("this command is only available for Go versions 1.13 and higher")
 		}
 
-		allVersions, err := fetchAllGoVersions()
+		allVersions, err := version.FetchAllGoVersions()
 		if err != nil {
 			return fmt.Errorf("failed to fetch Go versions: %w", err)
 		}
@@ -74,39 +71,6 @@ For example: sgv sub 1.22`,
 		return nil
 	},
 }
-
-// fetchAllGoVersions fetches the content of the Go downloads page and extracts all version numbers.
-func fetchAllGoVersions() ([]string, error) {
-	resp, err := http.Get("https://go.dev/dl/")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	// Regex to find download links like "/dl/go1.22.4.src.tar.gz"
-	re := regexp.MustCompile(`"/dl/(go[0-9]+\.[0-9]+(\.[0-9]+)?)\.src\.tar\.gz"`)
-	matches := re.FindAllStringSubmatch(string(body), -1)
-
-	versions := make(map[string]struct{})
-	for _, match := range matches {
-		if len(match) > 1 {
-			versions[match[1]] = struct{}{}
-		}
-	}
-
-	versionList := make([]string, 0, len(versions))
-	for v := range versions {
-		versionList = append(versionList, v)
-	}
-
-	return versionList, nil
-}
-
 
 func init() {
 	rootCmd.AddCommand(subCmd)

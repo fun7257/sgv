@@ -7,7 +7,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime/debug" // Add this import
+	"regexp"
+	"runtime/debug"
 	"sort"
 
 	"github.com/fun7257/sgv/internal/config"
@@ -129,4 +130,36 @@ func SwitchToVersion(version string) error {
 	}
 
 	return nil
+}
+
+// fetchAllGoVersions fetches the content of the Go downloads page and extracts all version numbers.
+func FetchAllGoVersions() ([]string, error) {
+	resp, err := http.Get("https://go.dev/dl/")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Regex to find download links like "/dl/go1.22.4.src.tar.gz"
+	re := regexp.MustCompile(`"/dl/(go[0-9]+\.[0-9]+(\.[0-9]+)?)\.src\.tar\.gz"`)
+	matches := re.FindAllStringSubmatch(string(body), -1)
+
+	versions := make(map[string]struct{})
+	for _, match := range matches {
+		if len(match) > 1 {
+			versions[match[1]] = struct{}{}
+		}
+	}
+
+	versionList := make([]string, 0, len(versions))
+	for v := range versions {
+		versionList = append(versionList, v)
+	}
+
+	return versionList, nil
 }

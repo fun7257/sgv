@@ -25,14 +25,29 @@ func findGoModVersion() (string, error) {
 			return "", fmt.Errorf("failed to read go.mod file: %w", err)
 		}
 
-		re := regexp.MustCompile(`^go\s+(\d+\.\d+(\.\d+)?)$`)
-		lines := strings.SplitSeq(string(content), "\n")
-		for line := range lines {
-			matches := re.FindStringSubmatch(line)
-			if len(matches) > 1 {
-				return "go" + matches[1], nil
+		goRe := regexp.MustCompile(`^go\s+(\d+\.\d+(\.\d+)?)`)
+		toolchainRe := regexp.MustCompile(`^toolchain\s+go(\d+\.\d+(\.\d+)?)`)
+
+		var goVersion, toolchainVersion string
+
+		lines := strings.Split(string(content), "\n")
+		for _, line := range lines {
+			if goMatches := goRe.FindStringSubmatch(line); len(goMatches) > 1 {
+				goVersion = "go" + goMatches[1]
+			}
+			if toolchainMatches := toolchainRe.FindStringSubmatch(line); len(toolchainMatches) > 1 {
+				toolchainVersion = "go" + toolchainMatches[1]
 			}
 		}
+
+		if toolchainVersion != "" && (goVersion == "" || semver.Compare(normalizeGoVersion(toolchainVersion), normalizeGoVersion(goVersion)) > 0) {
+			return toolchainVersion, nil
+		}
+
+		if goVersion != "" {
+			return goVersion, nil
+		}
+
 		// If go.mod found but no go version specified, return empty string and nil error
 		return "", nil
 	} else if !os.IsNotExist(err) {

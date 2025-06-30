@@ -26,7 +26,7 @@ To interact with the project during development:
 
 -   **Run commands:** Use `go run main.go <subcommand>` to execute specific commands.
     -   Example: `go run main.go list`
-    -   Example: `go run main.go auto`
+    -   Example: `go run main.go auto` (Now prompts for confirmation and switches to the most suitable version, even if current is higher)
     -   Example: `go run main.go sub 1.22` (Note: requires Go 1.13+)
 -   **Build and install:** Use `make install` to compile the binary and install it to `$GOPATH/bin`.
 -   **Run tests:** Use `go test ./...` to run all tests within the project.

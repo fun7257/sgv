@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/fun7257/sgv/internal/version"
 
@@ -39,11 +41,36 @@ var autoCmd = &cobra.Command{
 		}
 
 		var suitableVersion string
-		// Find the smallest installed version that is >= goModVersion
+		var suitableVersionSource string // "local" or "remote"
+
+		// 1. Find the smallest installed version that is >= goModVersion
 		for _, lv := range localVersions {
 			if isGoVersionSupported(lv) && isGoVersionCompatible(lv, goModVersion) {
 				if suitableVersion == "" || semver.Compare(normalizeGoVersion(lv), normalizeGoVersion(suitableVersion)) < 0 {
 					suitableVersion = lv
+					suitableVersionSource = "local"
+				}
+			}
+		}
+
+		// 2. If no suitable local version found, check remote versions
+		if suitableVersion == "" {
+			remoteVersions, err := version.FetchAllGoVersions()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error fetching remote versions: %v\n", err)
+				os.Exit(1)
+			}
+
+			// Sort remote versions to find the smallest compatible one
+			sort.Slice(remoteVersions, func(i, j int) bool {
+				return semver.Compare(normalizeGoVersion(remoteVersions[i]), normalizeGoVersion(remoteVersions[j])) < 0
+			})
+
+			for _, rv := range remoteVersions {
+				if isGoVersionSupported(rv) && isGoVersionCompatible(rv, goModVersion) {
+					suitableVersion = rv
+					suitableVersionSource = "remote"
+					break // Found the smallest suitable remote version
 				}
 			}
 		}
@@ -54,33 +81,43 @@ var autoCmd = &cobra.Command{
 			currentActiveVersion = ""
 		}
 
-		// If current active version is already sufficient, do nothing.
-		// This covers cases where currentActiveVersion >= goModVersion
-		// or currentActiveVersion == suitableVersion.
-		if currentActiveVersion != "" && semver.Compare(normalizeGoVersion(currentActiveVersion), normalizeGoVersion(goModVersion)) >= 0 {
-			return // No output, no switch needed
-		}
-
 		if suitableVersion != "" {
 			// If suitableVersion is the same as currentActiveVersion, no switch needed.
 			if currentActiveVersion != "" && suitableVersion == currentActiveVersion {
 				return // No output, no switch needed
 			}
 
-			fmt.Printf("go.mod requires Go version: %s\n", goModVersion)
-			fmt.Printf("Found suitable installed version: %s. Switching...\n", suitableVersion)
-			if err = version.SwitchToVersion(suitableVersion); err != nil {
-				fmt.Fprintf(os.Stderr, "Error switching to Go version %s: %v\n", suitableVersion, err)
-				os.Exit(1)
-			}
-			fmt.Printf("Successfully switched to Go version %s.\n", suitableVersion)
-		} else {
-			fmt.Printf("No installed Go version found that meets the go.mod requirement (%s). Please install a compatible version.\n", goModVersion)
-			os.Exit(1)
-		}
-	},
+            fmt.Printf("go.mod requires Go version: %s\n", goModVersion)
+            msg := fmt.Sprintf("Found suitable version: %s.", suitableVersion)
+            if suitableVersionSource == "remote" {
+                msg += " (Will download and install)"
+            }
+            fmt.Println(msg)
+            fmt.Printf("Switch to this version? (y/n): ")
+
+            var response string
+            _, err := fmt.Scanln(&response)
+            if err != nil {
+                fmt.Fprintf(os.Stderr, "Invalid input: %v\n", err)
+                os.Exit(1)
+            }
+
+            if strings.ToLower(response) == "y" {
+                rootCmd.SetArgs([]string{suitableVersion})
+                if err := rootCmd.Execute(); err != nil {
+                    fmt.Fprintf(os.Stderr, "Error switching to Go version %s: %v\n", suitableVersion, err)
+                    os.Exit(1)
+                }
+            } else {
+                fmt.Println("Switch aborted.")
+            }
+        } else {
+            fmt.Printf("No Go version found (local or remote) that meets the go.mod requirement (%s). Please install a compatible version manually.\n", goModVersion)
+            os.Exit(1)
+        }
+    },
 }
 
 func init() {
-	rootCmd.AddCommand(autoCmd)
+    rootCmd.AddCommand(autoCmd)
 }
