@@ -3,13 +3,11 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/fun7257/sgv/internal/version"
 
 	"github.com/spf13/cobra"
-	"golang.org/x/mod/semver"
 )
 
 var autoCmd = &cobra.Command{
@@ -40,38 +38,14 @@ var autoCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		var suitableVersion string
-		var suitableVersionSource string // "local" or "remote"
+		suitableVersion := goModVersion
+		suitableVersionSource := "remote" // Assume remote initially
 
-		// 1. Find the smallest installed version that is >= goModVersion
+		// Check if the go.mod version is installed locally
 		for _, lv := range localVersions {
-			if isGoVersionSupported(lv) && isGoVersionCompatible(lv, goModVersion) {
-				if suitableVersion == "" || semver.Compare(normalizeGoVersion(lv), normalizeGoVersion(suitableVersion)) < 0 {
-					suitableVersion = lv
-					suitableVersionSource = "local"
-				}
-			}
-		}
-
-		// 2. If no suitable local version found, check remote versions
-		if suitableVersion == "" {
-			remoteVersions, err := version.FetchAllGoVersions()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error fetching remote versions: %v\n", err)
-				os.Exit(1)
-			}
-
-			// Sort remote versions to find the smallest compatible one
-			sort.Slice(remoteVersions, func(i, j int) bool {
-				return semver.Compare(normalizeGoVersion(remoteVersions[i]), normalizeGoVersion(remoteVersions[j])) < 0
-			})
-
-			for _, rv := range remoteVersions {
-				if isGoVersionSupported(rv) && isGoVersionCompatible(rv, goModVersion) {
-					suitableVersion = rv
-					suitableVersionSource = "remote"
-					break // Found the smallest suitable remote version
-				}
+			if lv == goModVersion {
+				suitableVersionSource = "local"
+				break
 			}
 		}
 

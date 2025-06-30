@@ -98,19 +98,17 @@ sgv auto
 This command will:
 
 1.  Check if the current directory contains a `go.mod` file.
-2.  If a `go.mod` file is found, it will read the `go` and `toolchain` versions, prioritizing the `toolchain` version if it is higher.
-3.  It will first search for the smallest installed Go version that meets or exceeds the required version.
-4.  If no suitable local version is found, it will then search for the smallest available remote Go version that meets the requirement. This found version is considered the "most suitable" version.
-5.  If a suitable version is found and it's not the currently active version, it will prompt you to switch. This includes cases where the current version is higher than the suitable version.
-6.  If you confirm, it will switch to the suitable version, downloading it if it's not already installed.
-7.  If the current active Go version is already the most suitable one, no switch will occur and no output will be displayed.
-8.  If no suitable version (local or remote) is found, it will inform you.
-9.  If the current directory is not a Go project (no `go.mod` found), it will inform you and do nothing.
+2.  If a `go.mod` file is found, it will read the `go` and `toolchain` versions, prioritizing the `toolchain` version if it is higher. This determined version is the *exact* target version.
+3.  It will then check if this exact target version is installed locally.
+4.  If the target version is not the currently active version, it will prompt you to switch.
+5.  If you confirm, it will switch to the target version, downloading and installing it if it's not already present locally.
+6.  If the current active Go version is already the target version, no switch will occur and no output will be displayed.
+7.  If the current directory is not a Go project (no `go.mod` found), it will inform you and do nothing.
 
 Example of the interactive prompt:
 ```
 go.mod requires Go version: go1.22.1
-Found suitable version: go1.22.4. (Will download and install)
+Found suitable version: go1.22.1. (Will download and install)
 Switch to this version? (y/n): y
 ```
 
