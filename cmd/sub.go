@@ -26,6 +26,11 @@ For example: sgv sub 1.22`,
 			majorVersion = "1." + majorVersion
 		}
 
+		// Check if the major version is at least 1.13
+		if semver.Compare("v"+majorVersion, "v1.13") < 0 {
+			return fmt.Errorf("this command is only available for Go versions 1.13 and higher")
+		}
+
 		allVersions, err := fetchAllGoVersions()
 		if err != nil {
 			return fmt.Errorf("failed to fetch Go versions: %w", err)

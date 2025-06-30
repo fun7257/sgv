@@ -142,6 +142,8 @@ Example:
 
 This will show a list of all available Go 1.22.x versions, with currently installed versions marked.
 
+**Note:** This command is only available for Go versions 1.13 and higher.
+
 ### Uninstall a Go Version
 
 To remove an installed Go version:
