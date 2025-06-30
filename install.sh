@@ -69,7 +69,7 @@ main() {
     # 2. Get the latest version from GitHub Releases
     # Note: This requires the repository to have public releases.
     REPO="fun7257/sgv"
-    LATEST_VERSION=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep -oP '"tag_name": "\K(.*)(?=")')
+    LATEST_VERSION=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | cut -d '"' -f 4)
 
     if [ -z "$LATEST_VERSION" ]; then
         error "Could not fetch the latest version tag from GitHub. Please check the repository path and release status."
