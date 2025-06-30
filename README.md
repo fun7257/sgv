@@ -16,47 +16,15 @@ sgv (Simple Go Version) is a lightweight command-line tool for managing multiple
 
 ## Installation
 
-To install `sgv`, make sure you have Go installed (any version will do for building `sgv` itself).
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/fun7257/sgv.git
-    cd sgv
-    ```
-
-2.  **Build and install:**
-    ```bash
-    make install
-    ```
-    This will compile `sgv` and place the executable in your `$GOPATH/bin` (or `$GOBIN`) directory, making it available in your PATH.
-
-### Environment Variables Setup
-
-After installing `sgv` and your first Go version, you need to set up some environment variables to make `go` commands work correctly. Add the following lines to your shell profile (e.g., `~/.zshrc`, `~/.bashrc`, `~/.profile`):
+You can install `sgv` with a single command using the installation script. This script will automatically detect your operating system and architecture, download the latest pre-compiled binary, and set up the necessary environment variables.
 
 ```bash
-export SGV_ROOT="$HOME/.sgv"
-export GOROOT="$SGV_ROOT/current"
-export PATH="$GOROOT/bin:$HOME/go/bin:$PATH"
-unset GOPATH
+curl -sSL https://raw.githubusercontent.com/fun7257/sgv/main/install.sh | bash
 ```
 
-**For `~/.zshrc` users, you can append these lines directly by running:**
+The script will install `sgv` to `/usr/local/bin` and will prompt for `sudo` access if required. It will also update your shell profile (`~/.bashrc` or `~/.zshrc`) to configure the `GOROOT` and `PATH` environment variables.
 
-```bash
-cat << 'EOF' >> ~/.zshrc
-export SGV_ROOT="$HOME/.sgv"
-export GOROOT="$SGV_ROOT/current"
-export PATH="$GOROOT/bin:$HOME/go/bin:$PATH"
-unset GOPATH
-EOF
-```
-
-After adding these lines, remember to `source` your shell profile to apply the changes:
-
-```bash
-source ~/.zshrc # Or ~/.bashrc, ~/.profile, etc.
-```
+After the installation is complete, restart your terminal or run `source ~/.bashrc` (or `source ~/.zshrc`) to apply the changes.
 
 ## Usage
 
