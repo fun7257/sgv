@@ -14,9 +14,9 @@ sgv (Simple Go Version) is a lightweight command-line tool for managing multiple
 *   **Uninstall Go Versions:** Remove installed Go versions.
 *   **Display Version Information:** Show the build Go version and commit hash of sgv itself.
 
-## Installation
+## Installation (Linux/macOS)
 
-You can install `sgv` with a single command using the installation script. This script will automatically detect your operating system and architecture, download the latest pre-compiled binary, and set up the necessary environment variables.
+You can install `sgv` on Linux and macOS with a single command using the installation script. This script will automatically detect your operating system and architecture, download the latest pre-compiled binary, and set up the necessary environment variables.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/fun7257/sgv/main/install.sh | bash
@@ -25,6 +25,16 @@ curl -sSL https://raw.githubusercontent.com/fun7257/sgv/main/install.sh | bash
 The script will install `sgv` to `/usr/local/bin` and will prompt for `sudo` access if required. It will also update your shell profile (`~/.bashrc` or `~/.zshrc`) to configure the `GOROOT` and `PATH` environment variables.
 
 After the installation is complete, restart your terminal or run `source ~/.bashrc` (or `source ~/.zshrc`) to apply the changes.
+
+## Installation (Windows)
+
+To install `sgv` on Windows, open PowerShell **as an Administrator** and run the following command. This script will download the latest pre-compiled binary, install it, and configure the necessary system environment variables.
+
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12; Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/fun7257/sgv/main/install.ps1'))
+```
+
+After the installation is complete, please restart your terminal or command prompt for the environment variable changes to take effect.
 
 ## Usage
 

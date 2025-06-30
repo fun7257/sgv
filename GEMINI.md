@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-`sgv` (Simple Go Version) is a command-line tool written in Go for managing multiple Go language versions. It allows users to install, switch between, list, and uninstall different Go versions. The tool can also automatically select a suitable Go version based on the `go.mod` file in the current project.
+`sgv` (Simple Go Version) is a command-line tool written in Go for managing multiple Go language versions. It allows users to install, switch between, list, and uninstall different Go versions. The tool can also automatically select a suitable Go version based on the `go.mod` file in the current project. `sgv` supports Linux, macOS, and Windows platforms.
 
 The project uses the `cobra` library to structure its command-line interface.
 
@@ -11,6 +11,8 @@ The project uses the `cobra` library to structure its command-line interface.
 -   `main.go`: The entry point of the application. It initializes and executes the root command.
 -   `go.mod` / `go.sum`: Defines the project's module path and manages its dependencies.
 -   `README.md`: Contains detailed user-facing documentation, including installation and usage instructions.
+-   `install.sh`: Installation script for Linux and macOS.
+-   `install.ps1`: Installation script for Windows (PowerShell).
 -   `Makefile`: Provides convenience targets for building and installing the application (`make install`).
 -   `cmd/`: This directory contains all the command definitions for the CLI.
     -   `root.go`: Sets up the main `sgv` root command.
