@@ -126,7 +126,18 @@ To see all Go versions you have installed with `sgv`:
 sgv list
 ```
 
-This will show a list of installed versions, with the currently active version marked.
+This will show a list of installed versions, grouped by major version, with the currently active version marked.
+
+Example output:
+```
+Installed Go versions:
+go1.21:
+  go1.21.0
+  go1.21.9
+go1.22:
+  go1.22.1 <- current
+  go1.22.4
+```
 
 ### List Minor Versions of a Go Version
 

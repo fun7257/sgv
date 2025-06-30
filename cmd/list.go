@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/fun7257/sgv/internal/version"
 
@@ -34,14 +36,39 @@ var listCmd = &cobra.Command{
 		}
 
 		fmt.Println("Installed Go versions:")
+		// Group versions by major version
+		groupedVersions := make(map[string][]string)
 		for _, v := range localVersions {
-			if v == currentVersion {
-				fmt.Printf("  %s %s\n", v, color.GreenString("<- current"))
-			} else {
-				fmt.Printf("  %s\n", v)
+			majorVersion := getMajorVersion(v)
+			groupedVersions[majorVersion] = append(groupedVersions[majorVersion], v)
+		}
+
+		// Get sorted keys
+		var sortedKeys []string
+		for k := range groupedVersions {
+			sortedKeys = append(sortedKeys, k)
+		}
+		sort.Strings(sortedKeys)
+
+		for _, k := range sortedKeys {
+			fmt.Printf("%s:\n", k)
+			for _, v := range groupedVersions[k] {
+				if v == currentVersion {
+					fmt.Printf("  %s %s\n", v, color.GreenString("<- current"))
+				} else {
+					fmt.Printf("  %s\n", v)
+				}
 			}
 		}
 	},
+}
+
+func getMajorVersion(version string) string {
+	parts := strings.Split(strings.TrimPrefix(version, "go"), ".")
+	if len(parts) >= 2 {
+		return "go" + parts[0] + "." + parts[1]
+	}
+	return version
 }
 
 func init() {
