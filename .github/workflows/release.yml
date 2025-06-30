@@ -39,21 +39,24 @@ jobs:
         go mod download
 
     - name: Build
+      id: build
       env:
         GOOS: ${{ matrix.os == 'ubuntu-latest' && 'linux' || 'darwin' }}
         GOARCH: ${{ matrix.arch }}
       run: |
         go build -o sgv
+        echo "goos=${GOOS}" >> $GITHUB_OUTPUT
 
     - name: Archive production artifacts
       run: |
-        tar -czvf sgv-${{ matrix.os }}-${{ matrix.arch }}.tar.gz sgv
+        TAG_NAME=${{ github.event.inputs.tag_name || github.ref_name }}
+        tar -czvf sgv_${TAG_NAME#v}_${{ steps.build.outputs.goos }}_${{ matrix.arch }}.tar.gz sgv
 
     - name: Upload Release Asset
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
       with:
-        files: sgv-${{ matrix.os }}-${{ matrix.arch }}.tar.gz
+        files: sgv_*_${{ steps.build.outputs.goos }}_${{ matrix.arch }}.tar.gz
         tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

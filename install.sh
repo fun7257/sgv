@@ -69,16 +69,17 @@ main() {
     # 2. Get the latest version from GitHub Releases
     # Note: This requires the repository to have public releases.
     REPO="fun7257/sgv"
-    LATEST_VERSION=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | cut -d '"' -f 4)
+    LATEST_TAG=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | cut -d '"' -f 4)
+    LATEST_VERSION=${LATEST_TAG#v}
 
-    if [ -z "$LATEST_VERSION" ]; then
+    if [ -z "$LATEST_TAG" ]; then
         error "Could not fetch the latest version tag from GitHub. Please check the repository path and release status."
     fi
     
-    info "Latest version is $LATEST_VERSION"
+    info "Latest version is $LATEST_TAG"
 
     # 3. Download the pre-compiled binary
-    DOWNLOAD_URL="https://github.com/$REPO/releases/download/$LATEST_VERSION/sgv_${LATEST_VERSION}_${OS}_${ARCH}.tar.gz"
+    DOWNLOAD_URL="https://github.com/$REPO/releases/download/$LATEST_TAG/sgv_${LATEST_VERSION}_${OS}_${ARCH}.tar.gz"
     
     info "Downloading from $DOWNLOAD_URL..."
     TEMP_DIR=$(mktemp -d)
