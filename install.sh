@@ -105,18 +105,9 @@ main() {
         sudo mv "$TEMP_DIR/sgv" "$INSTALL_DIR/sgv"
     fi
 
-    # 5. Set permissions and handle macOS Gatekeeper
+    # 5. Set permissions
     chmod +x "$INSTALL_DIR/sgv"
     info "Set executable permission for sgv."
-
-    if [ "$OS" == "darwin" ]; then
-        info "macOS detected. Removing quarantine attribute to prevent Gatekeeper issues."
-        if xattr -d com.apple.quarantine "$INSTALL_DIR/sgv" 2>/dev/null; then
-            info "Successfully removed quarantine attribute."
-        else
-            warn "Could not remove quarantine attribute. You might need to grant permissions manually in System Settings."
-        fi
-    fi
 
     # 6. Update Shell Configuration
     info "Adding environment variables to shell profile..."
@@ -131,16 +122,16 @@ main() {
     else
         warn "Could not detect a supported shell (bash or zsh). You will need to add the environment variables manually."
         warn "Add the following lines to your shell's startup file:"
-        echo -e "\n# sgv (Simple Go Version) configuration\nexport GOROOT=\"$HOME/.sgv/current\"\nunset GOPATH\nexport PATH=\"$GOROOT/bin:$HOME/go/bin:$PATH\""
+        echo -e "\n# sgv (Simple Go Version) configuration\nexport GOROOT=\"\$HOME/.sgv/current\"\nunset GOPATH\nexport PATH=\"\$GOROOT/bin:\$HOME/go/bin:\$PATH\""
         return
     fi
 
     # Check if variables are already set
     if ! grep -q "export GOROOT" "$SHELL_CONFIG_FILE"; then
         echo -e "\n# sgv (Simple Go Version) configuration" >> "$SHELL_CONFIG_FILE"
-        echo "export GOROOT=\"$HOME/.sgv/current\"" >> "$SHELL_CONFIG_FILE"
+        echo "export GOROOT=\"\$HOME/.sgv/current\"" >> "$SHELL_CONFIG_FILE"
+        echo "export PATH=\"\$GOROOT/bin:\$HOME/go/bin:\$PATH\"" >> "$SHELL_CONFIG_FILE"
         echo "unset GOPATH" >> "$SHELL_CONFIG_FILE"
-        echo "export PATH=\"$GOROOT/bin:$HOME/go/bin:$PATH\"" >> "$SHELL_CONFIG_FILE"
         info "Added GOROOT, unset GOPATH, and updated PATH in $SHELL_CONFIG_FILE."
     else
         info "Environment variables already seem to be set in $SHELL_CONFIG_FILE. Skipping."
