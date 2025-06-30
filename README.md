@@ -99,6 +99,7 @@ This command will:
 
 1.  Check if the current directory contains a `go.mod` file.
 2.  If a `go.mod` file is found, it will read the `go` and `toolchain` versions, prioritizing the `toolchain` version if it is higher. This determined version is the *exact* target version.
+    *   **Version Parsing Note:** For Go 1.21 and later, if `go.mod` specifies a version like `go1.21`, `sgv` will interpret it as `go1.21.0`. For versions prior to Go 1.21 (e.g., `go1.20`), `go1.20` will continue to be interpreted as `go1.20` (without an appended `.0`).
 3.  It will then check if this exact target version is installed locally.
 4.  If the target version is not the currently active version, it will prompt you to switch.
 5.  If you confirm, it will switch to the target version, downloading and installing it if it's not already present locally.

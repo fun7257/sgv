@@ -25,8 +25,8 @@ func findGoModVersion() (string, error) {
 			return "", fmt.Errorf("failed to read go.mod file: %w", err)
 		}
 
-		goRe := regexp.MustCompile(`^go\s+(\d+\.\d+(\.\d+)?)`)
-		toolchainRe := regexp.MustCompile(`^toolchain\s+go(\d+\.\d+(\.\d+)?)`)
+		goRe := regexp.MustCompile(`^go\s+(\d+\.\d+(?:\.\d+)?)`)
+		toolchainRe := regexp.MustCompile(`^toolchain\s+go(\d+\.\d+(?:\.\d+)?)`)
 
 		var goVersion, toolchainVersion string
 
@@ -41,11 +41,11 @@ func findGoModVersion() (string, error) {
 		}
 
 		if toolchainVersion != "" && (goVersion == "" || semver.Compare(normalizeGoVersion(toolchainVersion), normalizeGoVersion(goVersion)) > 0) {
-			return toolchainVersion, nil
+			return normalizeGoModVersion(toolchainVersion), nil
 		}
 
 		if goVersion != "" {
-			return goVersion, nil
+			return normalizeGoModVersion(goVersion), nil
 		}
 
 		// If go.mod found but no go version specified, return empty string and nil error
@@ -55,6 +55,25 @@ func findGoModVersion() (string, error) {
 	}
 
 	return "", nil // No go.mod found in current directory
+}
+
+// normalizeGoModVersion adjusts the Go version string based on the go.mod parsing rules.
+// For Go 1.21 and later, "go1.21" is treated as "go1.21.0".
+// For versions below 1.21, "go1.20" is treated as "go1.20".
+func normalizeGoModVersion(v string) string {
+	// Remove "go" prefix for easier parsing
+	versionNum := strings.TrimPrefix(v, "go")
+
+	// Check if it's a major.minor version (e.g., "1.21")
+	if !strings.Contains(versionNum, ".") {
+		return v // Should not happen for valid Go versions
+	}
+
+	parts := strings.Split(versionNum, ".")
+	if len(parts) == 2 && semver.Compare("v"+versionNum, "v1.21") >= 0 { // Major.Minor version
+		return "go" + versionNum + ".0"
+	}
+	return v
 }
 
 // normalizeGoVersion ensures the version string starts with 'v' for semver comparison.
