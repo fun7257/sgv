@@ -16,7 +16,7 @@ The project uses the `cobra` library to structure its command-line interface.
 -   `Makefile`: Provides convenience targets for building and installing the application (`make install`).
 -   `cmd/`: This directory contains all the command definitions for the CLI.
     -   `root.go`: Sets up the main `sgv` root command.
-    -   `install.go`, `list.go`, `update.go`, etc.: Each file defines a specific subcommand (e.g., `sgv install`, `sgv list`).
+    -   `install.go`, `list.go`, `latest.go`, etc.: Each file defines a specific subcommand (e.g., `sgv install`, `sgv list`).
 -   `internal/`: Contains the core application logic, separated from the command-line interface.
     -   `installer/installer.go`: Handles the logic for downloading, installing, and managing Go versions.
     -   `config/config.go`: Manages configuration settings.

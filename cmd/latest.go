@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/fun7257/sgv/internal/installer"
@@ -10,8 +11,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var updateCmd = &cobra.Command{
-	Use:   "update",
+var latestCmd = &cobra.Command{
+	Use:   "latest",
 	Short: "Install the latest Go version",
 	Long:  `Check for the latest Go version, install it if not already installed, and switch to it.`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -25,13 +26,25 @@ var updateCmd = &cobra.Command{
 		fmt.Printf("The latest Go version is: %s\n", latestVersion)
 
 		// Get the current version
-		currentVersion, err := version.GetCurrentVersion()
+		currentVersion := ""       // Initialize currentVersion
+		currentVersionErr := false // Flag to indicate if there was an error getting current version
+
+		cv, err := version.GetCurrentVersion()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error getting the current Go version: %v\n", err)
-			os.Exit(1)
+			if os.IsNotExist(err) {
+				// No current version, this is expected for a fresh install
+				fmt.Println("No Go version is currently active. Installing the latest version.")
+				currentVersionErr = true // Set flag, but don't exit
+			} else {
+				// Other unexpected error, exit
+				fmt.Fprintf(os.Stderr, "Error getting the current Go version: %v\n", err)
+				os.Exit(1)
+			}
+		} else {
+			currentVersion = cv
 		}
 
-		if currentVersion == latestVersion {
+		if !currentVersionErr && currentVersion == latestVersion {
 			fmt.Printf("You are already using the latest Go version: %s\n", latestVersion)
 			return
 		}
@@ -46,13 +59,7 @@ var updateCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		isInstalled := false
-		for _, v := range localVersions {
-			if v == latestVersion {
-				isInstalled = true
-				break
-			}
-		}
+		isInstalled := slices.Contains(localVersions, latestVersion)
 
 		if isInstalled {
 			fmt.Printf("Go version %s is already installed.\n", latestVersion)
@@ -75,5 +82,5 @@ var updateCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(updateCmd)
+	rootCmd.AddCommand(latestCmd)
 }
