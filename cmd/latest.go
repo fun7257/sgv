@@ -31,15 +31,10 @@ var latestCmd = &cobra.Command{
 
 		cv, err := version.GetCurrentVersion()
 		if err != nil {
-			if os.IsNotExist(err) {
-				// No current version, this is expected for a fresh install
-				fmt.Println("No Go version is currently active. Installing the latest version.")
-				currentVersionErr = true // Set flag, but don't exit
-			} else {
-				// Other unexpected error, exit
-				fmt.Fprintf(os.Stderr, "Error getting the current Go version: %v\n", err)
-				os.Exit(1)
-			}
+			// No current version, this is expected for a fresh install
+			fmt.Println("No Go version is currently active. Installing the latest version.")
+			currentVersionErr = true // Set flag, but don't exit
+			currentVersion = ""      // Set currentVersion to empty string
 		} else {
 			currentVersion = cv
 		}
