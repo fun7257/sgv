@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"slices"
-	"strings"
 
 	"github.com/fun7257/sgv/internal/installer"
 	"github.com/fun7257/sgv/internal/version"
@@ -44,9 +43,6 @@ var latestCmd = &cobra.Command{
 			return
 		}
 
-		// The version from the website has a 'go' prefix, remove it for installation.
-		installVersion := strings.TrimPrefix(latestVersion, "go")
-
 		// Check if the latest version is already installed
 		localVersions, err := version.GetLocalVersions()
 		if err != nil {
@@ -60,7 +56,7 @@ var latestCmd = &cobra.Command{
 			fmt.Printf("Go version %s is already installed.\n", latestVersion)
 		} else {
 			fmt.Printf("Go version %s not found locally. Installing...\n", latestVersion)
-			if err := installer.Install(installVersion); err != nil {
+			if err := installer.Install(latestVersion); err != nil {
 				fmt.Fprintf(os.Stderr, "Error installing Go version %s: %v\n", latestVersion, err)
 				os.Exit(1)
 			}
