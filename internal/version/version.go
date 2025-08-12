@@ -38,9 +38,9 @@ func GetSGVVersion() string {
 	return fmt.Sprintf("%s (commit: %s, goVersion: %s)", sgvVersion, sgvCommit, goVersion)
 }
 
-// GetLocalVersions reads the VERSIONS_DIR and returns a sorted list of installed version names.
+// GetLocalVersions reads the VersionsDir and returns a sorted list of installed version names.
 func GetLocalVersions() ([]string, error) {
-	files, err := os.ReadDir(config.VERSIONS_DIR)
+	files, err := os.ReadDir(config.VersionsDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read versions directory: %w", err)
 	}
@@ -56,14 +56,14 @@ func GetLocalVersions() ([]string, error) {
 	return versions, nil
 }
 
-// GetCurrentVersion reads the CURRENT_SYMLINK and returns the name of the active version.
+// GetCurrentVersion reads the CurrentSymlink and returns the name of the active version.
 func GetCurrentVersion() (string, error) {
-	linkPath, err := os.Readlink(config.CURRENT_SYMLINK)
+	linkPath, err := os.Readlink(config.CurrentSymlink)
 	if err != nil {
 		return "", fmt.Errorf("failed to read current symlink: %w", err)
 	}
 
-	// The symlink points to a directory inside VERSIONS_DIR, so we need to get the base name.
+	// The symlink points to a directory inside VersionsDir, so we need to get the base name.
 	// We need to get the version name (e.g., "go1.17") from the symlink path.
 	versionDir := filepath.Base(filepath.Dir(linkPath))
 	return versionDir, nil
@@ -112,11 +112,11 @@ func GetLatestGoVersion() (string, error) {
 	return "", fmt.Errorf("no stable Go version found")
 }
 
-// SwitchToVersion removes the existing CURRENT_SYMLINK and creates a new one.
+// SwitchToVersion removes the existing CurrentSymlink and creates a new one.
 func SwitchToVersion(version string) error {
 	// Remove existing symlink if it exists
-	if _, err := os.Lstat(config.CURRENT_SYMLINK); err == nil {
-		if err := os.Remove(config.CURRENT_SYMLINK); err != nil {
+	if _, err := os.Lstat(config.CurrentSymlink); err == nil {
+		if err := os.Remove(config.CurrentSymlink); err != nil {
 			return fmt.Errorf("failed to remove existing symlink: %w", err)
 		}
 	} else if !os.IsNotExist(err) {
@@ -124,8 +124,8 @@ func SwitchToVersion(version string) error {
 	}
 
 	// Create new symlink
-	targetPath := filepath.Join(config.VERSIONS_DIR, version, "go") // Symlink to the 'go' directory inside the version
-	if err := os.Symlink(targetPath, config.CURRENT_SYMLINK); err != nil {
+	targetPath := filepath.Join(config.VersionsDir, version, "go") // Symlink to the 'go' directory inside the version
+	if err := os.Symlink(targetPath, config.CurrentSymlink); err != nil {
 		return fmt.Errorf("failed to create new symlink: %w", err)
 	}
 

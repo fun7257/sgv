@@ -33,7 +33,7 @@ var uninstallCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		versionPath := filepath.Join(config.VERSIONS_DIR, versionToUninstall)
+		versionPath := filepath.Join(config.VersionsDir, versionToUninstall)
 
 		// Check if the version directory actually exists
 		if _, err := os.Stat(versionPath); os.IsNotExist(err) {

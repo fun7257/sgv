@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	SGV_ROOT        string
-	VERSIONS_DIR    string
-	CURRENT_SYMLINK string
+	SgvRoot           string
+	VersionsDir       string
+	CurrentSymlink    string
+	DownloadURLPrefix string
 )
 
 func Init() {
@@ -19,11 +20,21 @@ func Init() {
 		os.Exit(1)
 	}
 
-	SGV_ROOT = filepath.Join(homeDir, ".sgv")
-	VERSIONS_DIR = filepath.Join(SGV_ROOT, "versions")
-	CURRENT_SYMLINK = filepath.Join(SGV_ROOT, "current")
+	SgvRoot = filepath.Join(homeDir, ".sgv")
+	VersionsDir = filepath.Join(SgvRoot, "versions")
+	CurrentSymlink = filepath.Join(SgvRoot, "current")
 
-	for _, dir := range []string{SGV_ROOT, VERSIONS_DIR} {
+	// Set DownloadURLPrefix from env or default
+	DownloadURLPrefix = os.Getenv("SGV_DOWNLOAD_URL_PREFIX")
+	if DownloadURLPrefix == "" {
+		DownloadURLPrefix = "https://go.dev/dl/"
+	}
+	// Ensure ends with '/'
+	if DownloadURLPrefix[len(DownloadURLPrefix)-1] != '/' {
+		DownloadURLPrefix += "/"
+	}
+
+	for _, dir := range []string{SgvRoot, VersionsDir} {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			if err := os.MkdirAll(dir, 0755); err != nil {
 				fmt.Fprintf(os.Stderr, "Error creating directory %s: %v\n", dir, err)

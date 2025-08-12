@@ -51,7 +51,7 @@ This tool allows you to easily install and switch between different Go versions.
 		}
 
 		// Check if version is already installed
-		installPath := filepath.Join(config.VERSIONS_DIR, versionStr)
+		installPath := filepath.Join(config.VersionsDir, versionStr)
 		if _, err := os.Stat(installPath); os.IsNotExist(err) {
 			fmt.Printf("Go version %s not found locally. Installing...\n", versionStr)
 			if err := installer.Install(versionStr); err != nil {

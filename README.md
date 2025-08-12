@@ -38,6 +38,20 @@ After the installation is complete, please restart your terminal or command prom
 
 ## Usage
 
+## Changing Go Download Source
+
+If you are in mainland China or need to use a different Go download mirror, you can set the environment variable `SGV_DOWNLOAD_URL_PREFIX` to change the download source. By default, sgv uses `https://go.dev/dl/`.
+
+For example, to use the official Chinese mirror:
+
+```sh
+export SGV_DOWNLOAD_URL_PREFIX=https://golang.google.cn/dl/
+```
+
+Set this variable before running any sgv install or switch command. sgv will automatically use this prefix to download Go versions.
+
+You can also add this line to your shell profile (e.g., `~/.bashrc` or `~/.zshrc`) for persistent effect.
+
 ### Install or Switch Go Version
 
 To install a new Go version or switch to an already installed one:
@@ -169,4 +183,4 @@ Contributions are welcome! Please feel free to open issues or submit pull reques
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. (You might want to create a LICENSE file if you haven't already.)
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.

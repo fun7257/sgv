@@ -21,7 +21,7 @@ func Install(version string) error {
 	goARCH := runtime.GOARCH
 
 	filename := fmt.Sprintf("%s.%s-%s.tar.gz", version, goOS, goARCH)
-	downloadURL := fmt.Sprintf("https://go.dev/dl/%s", filename)
+	downloadURL := fmt.Sprintf("%s%s", config.DownloadURLPrefix, filename)
 
 	fmt.Printf("Downloading %s from %s\n", version, downloadURL)
 
@@ -62,7 +62,7 @@ func Install(version string) error {
 	fmt.Printf("Extracting %s...\n", filename)
 
 	// Extract the archive
-	installPath := filepath.Join(config.VERSIONS_DIR, version)
+	installPath := filepath.Join(config.VersionsDir, version)
 	if err := extractTarGz(outFilePath, installPath); err != nil {
 		return fmt.Errorf("failed to extract archive: %w", err)
 	}
