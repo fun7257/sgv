@@ -77,7 +77,8 @@ type GoVersion struct {
 
 // GetRemoteVersions fetches available Go versions from the official Go website.
 func GetRemoteVersions() ([]GoVersion, error) {
-	resp, err := http.Get("https://go.dev/dl/?mode=json")
+	url := config.DownloadURLPrefix + "?mode=json"
+	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch remote versions: %w", err)
 	}
@@ -134,7 +135,8 @@ func SwitchToVersion(version string) error {
 
 // fetchAllGoVersions fetches the content of the Go downloads page and extracts all version numbers.
 func FetchAllGoVersions() ([]string, error) {
-	resp, err := http.Get("https://go.dev/dl/")
+	url := config.DownloadURLPrefix
+	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
