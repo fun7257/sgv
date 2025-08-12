@@ -1,4 +1,4 @@
-
+[English](README.md) | [简体中文](README_zh.md)
 # sgv - Go Version Manager
 
 `sgv` (Simple Go Version) is a lightweight CLI tool for managing multiple Go versions on your system. It supports Go 1.13 and above, and works on macOS, Linux, and Windows.
