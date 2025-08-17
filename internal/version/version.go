@@ -7,11 +7,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime/debug"
 	"sort"
+	"time"
 
 	"github.com/fun7257/sgv/internal/config"
+	"github.com/samber/lo"
 )
 
 var (
@@ -75,14 +76,46 @@ type GoVersion struct {
 	Stable  bool   `json:"stable"`
 }
 
-// GetRemoteVersions fetches available Go versions from the official Go website.
+// GetRemoteVersions fetches available Go versions from the official Go website, with a 10-minute file cache.
 func GetRemoteVersions() ([]GoVersion, error) {
-	url := config.DownloadURLPrefix + "?mode=json"
-	resp, err := http.Get(url)
+	cache := NewVersionCache()
+
+	// Try to load from cache first
+	if versions, err := cache.LoadFresh(); err == nil {
+		return versions, nil
+	}
+
+	// Fetch from remote API
+	versions, err := fetchRemoteVersions()
+	if err != nil {
+		// If remote fetch fails, try to return stale cache as fallback
+		if staleVersions, cacheErr := cache.LoadStale(); cacheErr == nil {
+			return staleVersions, nil
+		}
+		return nil, err
+	}
+
+	// Save to cache (best effort, don't fail on cache write errors)
+	cache.Save(versions)
+
+	return versions, nil
+}
+
+// fetchRemoteVersions fetches versions from the official Go website
+func fetchRemoteVersions() ([]GoVersion, error) {
+	url := config.DownloadURLPrefix + "?mode=json&include=all"
+
+	// Create request with timeout
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch remote versions: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -133,34 +166,21 @@ func SwitchToVersion(version string) error {
 	return nil
 }
 
-// fetchAllGoVersions fetches the content of the Go downloads page and extracts all version numbers.
+// FetchAllGoVersions fetches all available Go versions from the official Go website.
 func FetchAllGoVersions() ([]string, error) {
-	url := config.DownloadURLPrefix
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
+	remoteVersions, err := GetRemoteVersions()
 	if err != nil {
 		return nil, err
 	}
 
-	// Regex to find download links like "/dl/go1.22.4.src.tar.gz"
-	re := regexp.MustCompile(`"/dl/(go[0-9]+\.[0-9]+(\.[0-9]+)?)\.src\.tar\.gz"`)
-	matches := re.FindAllStringSubmatch(string(body), -1)
+	// Filter out non-stable versions
+	remoteVersions = lo.Filter(remoteVersions, func(item GoVersion, _ int) bool {
+		return item.Stable
+	})
 
-	versions := make(map[string]struct{})
-	for _, match := range matches {
-		if len(match) > 1 {
-			versions[match[1]] = struct{}{}
-		}
-	}
-
-	versionList := make([]string, 0, len(versions))
-	for v := range versions {
-		versionList = append(versionList, v)
+	var versionList []string
+	for _, v := range remoteVersions {
+		versionList = append(versionList, v.Version)
 	}
 
 	return versionList, nil
