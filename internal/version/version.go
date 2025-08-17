@@ -70,10 +70,30 @@ func GetCurrentVersion() (string, error) {
 	return versionDir, nil
 }
 
-// GoVersion represents a Go version from the remote API.
+// GoVersion represents a simplified Go version for internal use.
 type GoVersion struct {
 	Version string `json:"version"`
 	Stable  bool   `json:"stable"`
+	OS      string `json:"os"`
+	Arch    string `json:"arch"`
+}
+
+// GoVersionFile represents a file download for a specific Go version
+type GoVersionFile struct {
+	Filename string `json:"filename"`
+	OS       string `json:"os"`
+	Arch     string `json:"arch"`
+	Version  string `json:"version"`
+	SHA256   string `json:"sha256"`
+	Size     int64  `json:"size"`
+	Kind     string `json:"kind"`
+}
+
+// GoVersionResponse represents the complete API response structure
+type GoVersionResponse struct {
+	Version string          `json:"version"`
+	Stable  bool            `json:"stable"`
+	Files   []GoVersionFile `json:"files"`
 }
 
 // GetRemoteVersions fetches available Go versions from the official Go website, with a 10-minute file cache.
@@ -122,9 +142,34 @@ func fetchRemoteVersions() ([]GoVersion, error) {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	var versions []GoVersion
-	if err := json.Unmarshal(body, &versions); err != nil {
+	// Parse the complete API response
+	var apiResponse []GoVersionResponse
+	if err := json.Unmarshal(body, &apiResponse); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal JSON response: %w", err)
+	}
+
+	// Convert to simplified GoVersion slice
+	var versions []GoVersion
+	for _, response := range apiResponse {
+		// Skip empty entries (first element is often empty)
+		if response.Version == "" {
+			continue
+		}
+
+		// Create GoVersion entries for each file (OS/Arch combination)
+		for _, file := range response.Files {
+			// Skip source files (they don't have OS/Arch)
+			if file.Kind == "source" {
+				continue
+			}
+
+			versions = append(versions, GoVersion{
+				Version: response.Version,
+				Stable:  response.Stable,
+				OS:      file.OS,
+				Arch:    file.Arch,
+			})
+		}
 	}
 
 	return versions, nil
@@ -166,8 +211,8 @@ func SwitchToVersion(version string) error {
 	return nil
 }
 
-// FetchAllGoVersions fetches all available Go versions from the official Go website.
-func FetchAllGoVersions() ([]string, error) {
+// GetStableGoVersions fetches all stable Go versions from the official Go website.
+func GetStableGoVersions() ([]GoVersion, error) {
 	remoteVersions, err := GetRemoteVersions()
 	if err != nil {
 		return nil, err
@@ -178,10 +223,5 @@ func FetchAllGoVersions() ([]string, error) {
 		return item.Stable
 	})
 
-	var versionList []string
-	for _, v := range remoteVersions {
-		versionList = append(versionList, v.Version)
-	}
-
-	return versionList, nil
+	return remoteVersions, nil
 }

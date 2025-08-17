@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"runtime"
 	"sort"
 	"strings"
 
@@ -14,7 +15,7 @@ import (
 var subCmd = &cobra.Command{
 	Use:   "sub [major_version]",
 	Short: "List minor versions for a specific Go major version",
-	Long:  `List all available minor patch versions for a given Go major version.
+	Long: `List all available minor patch versions for a given Go major version.
 For example: sgv sub 1.22`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -28,7 +29,11 @@ For example: sgv sub 1.22`,
 			return fmt.Errorf("this command is only available for Go versions 1.13 and higher")
 		}
 
-		allVersions, err := version.FetchAllGoVersions()
+		// Get current platform info
+		currentOS := runtime.GOOS
+		currentArch := runtime.GOARCH
+
+		allVersions, err := version.GetStableGoVersions()
 		if err != nil {
 			return fmt.Errorf("failed to fetch Go versions: %w", err)
 		}
@@ -43,28 +48,67 @@ For example: sgv sub 1.22`,
 			localVersionSet[v] = struct{}{}
 		}
 
-		var matchedVersions []string
+		var matchedVersions []version.GoVersion
 		for _, v := range allVersions {
-			if strings.HasPrefix(v, "go"+majorVersion) {
+			if strings.HasPrefix(v.Version, "go"+majorVersion) {
 				matchedVersions = append(matchedVersions, v)
 			}
 		}
 
-		sort.Slice(matchedVersions, func(i, j int) bool {
-			return semver.Compare("v"+strings.TrimPrefix(matchedVersions[i], "go"), "v"+strings.TrimPrefix(matchedVersions[j], "go")) < 0
+		// Group versions by version string and check platform compatibility
+		versionMap := make(map[string][]version.GoVersion)
+		for _, v := range matchedVersions {
+			versionMap[v.Version] = append(versionMap[v.Version], v)
+		}
+
+		// Convert back to sorted slice with platform info
+		var sortedVersions []string
+		for versionStr := range versionMap {
+			sortedVersions = append(sortedVersions, versionStr)
+		}
+		sort.Slice(sortedVersions, func(i, j int) bool {
+			return semver.Compare("v"+strings.TrimPrefix(sortedVersions[i], "go"), "v"+strings.TrimPrefix(sortedVersions[j], "go")) < 0
 		})
 
 		fmt.Printf("Available minor versions for go%s:\n", majorVersion)
-		if len(matchedVersions) == 0 {
+		if len(sortedVersions) == 0 {
 			fmt.Println("No versions found for the specified major version.")
 			return nil
 		}
 
-		for _, v := range matchedVersions {
-			if _, ok := localVersionSet[v]; ok {
-				fmt.Printf("%s (installed)\n", v)
+		// ANSI color codes
+		const (
+			colorReset = "\033[0m"
+			colorGray  = "\033[90m"
+		)
+
+		for _, versionStr := range sortedVersions {
+			platforms := versionMap[versionStr]
+
+			// Check if current platform is supported
+			isCurrentPlatformSupported := false
+			for _, p := range platforms {
+				if p.OS == currentOS && p.Arch == currentArch {
+					isCurrentPlatformSupported = true
+					break
+				}
+			}
+
+			// Format output based on installation status and platform support
+			if _, ok := localVersionSet[versionStr]; ok {
+				// Already installed
+				if isCurrentPlatformSupported {
+					fmt.Printf("%s (installed)\n", versionStr)
+				} else {
+					fmt.Printf("%s%s (installed, incompatible)%s\n", colorGray, versionStr, colorReset)
+				}
 			} else {
-				fmt.Println(v)
+				// Not installed
+				if isCurrentPlatformSupported {
+					fmt.Printf("%s\n", versionStr)
+				} else {
+					fmt.Printf("%s%s (incompatible with %s/%s)%s\n", colorGray, versionStr, currentOS, currentArch, colorReset)
+				}
 			}
 		}
 
