@@ -20,7 +20,7 @@
 ## Developer Workflows
 - **Build**: `go build -o sgv main.go`
 - **Test**: No explicit test suite found; add tests in `internal/` as needed.
-- **Install**: Use `install.sh` (Unix) or `install.ps1` (Windows) for end-to-end install experience.
+- **Install**: Use `install.sh` (Unix) for end-to-end install experience.
 - **Debug**: Use `fmt.Printf` or `log` for debugging; no custom logger.
 - **Release**: Update `sgvVersion` and `sgvCommit` in `internal/version/version.go` as needed.
 

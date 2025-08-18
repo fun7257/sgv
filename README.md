@@ -1,7 +1,7 @@
 [English](README.md) | [简体中文](README_zh.md)
 # sgv - Go Version Manager
 
-`sgv` (Simple Go Version) is a lightweight CLI tool for managing multiple Go versions on your system. It supports Go 1.13 and above, and works on macOS, Linux, and Windows.
+`sgv` (Simple Go Version) is a lightweight CLI tool for managing multiple Go versions on your system. It supports Go 1.13 and above, and works on macOS and Linux.
 
 ## Features
 
@@ -27,18 +27,6 @@ curl -sSL https://raw.githubusercontent.com/fun7257/sgv/main/install.sh | bash
 - Installs to `/usr/local/bin/sgv`
 - Automatically configures `GOROOT` and `PATH` in your `~/.bashrc` or `~/.zshrc`
 - After installation, restart your terminal or run `source ~/.bashrc` or `source ~/.zshrc`
-
-### Windows
-
-Open PowerShell as Administrator and run:
-
-```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12; Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/fun7257/sgv/main/install.ps1'))
-```
-
-- Installs to `C:\Program Files\sgv\sgv.exe`
-- Automatically configures environment variables
-- After installation, restart your terminal
 
 ---
 

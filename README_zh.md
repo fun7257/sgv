@@ -1,6 +1,6 @@
 # sgv - Go 版本管理器
 
-`sgv`（Simple Go Version）是一个轻量级的命令行工具，用于在本地系统上管理多个 Go 版本。支持 Go 1.13 及以上，适用于 macOS、Linux 和 Windows。
+`sgv`（Simple Go Version）是一个轻量级的命令行工具，用于在本地系统上管理多个 Go 版本。支持 Go 1.13 及以上，适用于 macOS 和 Linux。
 
 ## 功能特性
 
@@ -26,18 +26,6 @@ curl -sSL https://raw.githubusercontent.com/fun7257/sgv/main/install.sh | bash
 - 安装到 `/usr/local/bin/sgv`
 - 自动配置 `GOROOT` 和 `PATH` 到 `~/.bashrc` 或 `~/.zshrc`
 - 安装后请重启终端或执行 `source ~/.bashrc` 或 `source ~/.zshrc`
-
-### Windows
-
-以管理员身份打开 PowerShell，执行：
-
-```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12; Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/fun7257/sgv/main/install.ps1'))
-```
-
-- 安装到 `C:\Program Files\sgv\sgv.exe`
-- 自动配置环境变量
-- 安装后请重启终端
 
 ---
 

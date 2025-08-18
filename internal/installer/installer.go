@@ -20,6 +20,11 @@ func Install(version string) error {
 	goOS := runtime.GOOS
 	goARCH := runtime.GOARCH
 
+	// Check if the current platform is supported
+	if goOS == "windows" {
+		return fmt.Errorf("Windows is not supported by sgv. This tool only works on macOS and Linux")
+	}
+
 	filename := fmt.Sprintf("%s.%s-%s.tar.gz", version, goOS, goARCH)
 	downloadURL := fmt.Sprintf("%s%s", config.DownloadURLPrefix, filename)
 

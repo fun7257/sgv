@@ -163,6 +163,11 @@ func fetchRemoteVersions() ([]GoVersion, error) {
 				continue
 			}
 
+			// Skip Windows files as Windows is not supported
+			if file.OS == "windows" {
+				continue
+			}
+
 			versions = append(versions, GoVersion{
 				Version: response.Version,
 				Stable:  response.Stable,

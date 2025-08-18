@@ -19,7 +19,7 @@ jobs:
       contents: write # Add this line to grant write permissions for contents
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
         arch: [amd64, arm64]
         
 
@@ -38,10 +38,7 @@ jobs:
       id: set_vars
       shell: bash
       run: |
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          echo "goos=windows" >> $GITHUB_OUTPUT
-          echo "ext=.exe" >> $GITHUB_OUTPUT
-        elif [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
           echo "goos=linux" >> $GITHUB_OUTPUT
           echo "ext=" >> $GITHUB_OUTPUT
         else
@@ -68,13 +65,8 @@ jobs:
       run: |
         TAG_NAME=${{ github.event.inputs.tag_name || github.ref_name }}
         FILENAME_BASE="sgv_${TAG_NAME#v}_${{ steps.set_vars.outputs.goos }}_${{ matrix.arch }}"
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          FILENAME="${FILENAME_BASE}.zip"
-          7z a "${FILENAME}" sgv.exe
-        else
-          FILENAME="${FILENAME_BASE}.tar.gz"
-          tar -czvf "${FILENAME}" sgv
-        fi
+        FILENAME="${FILENAME_BASE}.tar.gz"
+        tar -czvf "${FILENAME}" sgv
         echo "filename=${FILENAME}" >> $GITHUB_OUTPUT
 
     - name: Upload Release Asset

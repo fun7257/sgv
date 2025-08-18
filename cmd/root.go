@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/fun7257/sgv/internal/config"
@@ -81,5 +82,14 @@ func Execute() {
 }
 
 func init() {
+	checkPlatformSupport()
 	cobra.OnInitialize(config.Init)
+}
+
+// checkPlatformSupport ensures the current platform is supported
+func checkPlatformSupport() {
+	if runtime.GOOS == "windows" {
+		fmt.Fprintf(os.Stderr, "Error: Windows is not supported by sgv. This tool only works on macOS and Linux.\n")
+		os.Exit(1)
+	}
 }
