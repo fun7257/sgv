@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/fun7257/sgv/internal/config"
@@ -198,19 +199,48 @@ func GetLatestGoVersion() (string, error) {
 
 // SwitchToVersion removes the existing CurrentSymlink and creates a new one.
 func SwitchToVersion(version string) error {
-	// Remove existing symlink if it exists
-	if _, err := os.Lstat(config.CurrentSymlink); err == nil {
-		if err := os.Remove(config.CurrentSymlink); err != nil {
-			return fmt.Errorf("failed to remove existing symlink: %w", err)
+	// Basic input validation: avoid path separators in version
+	if strings.Contains(version, string(os.PathSeparator)) {
+		return fmt.Errorf("invalid version: %q", version)
+	}
+
+	// Ensure target exists and looks like an installed Go distribution
+	targetPath := filepath.Join(config.VersionsDir, version, "go") // Symlink to the 'go' directory inside the version
+	if fi, err := os.Stat(targetPath); err != nil {
+		return fmt.Errorf("version %s is not installed at %s: %w", version, targetPath, err)
+	} else if !fi.IsDir() {
+		return fmt.Errorf("version target is not a directory: %s", targetPath)
+	}
+
+	// Ensure the go binary exists under targetPath/bin/go
+	goBin := filepath.Join(targetPath, "bin", "go")
+	if _, err := os.Stat(goBin); err != nil {
+		return fmt.Errorf("go binary not found for version %s at %s: %w", version, goBin, err)
+	}
+
+	// Check existing CurrentSymlink: if it exists, ensure it's a symlink; don't remove arbitrary files
+	if info, err := os.Lstat(config.CurrentSymlink); err == nil {
+		if info.Mode()&os.ModeSymlink == 0 {
+			return fmt.Errorf("current path exists and is not a symlink: %s", config.CurrentSymlink)
 		}
 	} else if !os.IsNotExist(err) {
 		return fmt.Errorf("failed to stat current symlink: %w", err)
 	}
 
-	// Create new symlink
-	targetPath := filepath.Join(config.VersionsDir, version, "go") // Symlink to the 'go' directory inside the version
-	if err := os.Symlink(targetPath, config.CurrentSymlink); err != nil {
-		return fmt.Errorf("failed to create new symlink: %w", err)
+	// Create a temporary symlink in the same directory as CurrentSymlink, then atomically rename into place
+	dir := filepath.Dir(config.CurrentSymlink)
+	tmpName := fmt.Sprintf(".current.tmp.%d.%d", os.Getpid(), time.Now().UnixNano())
+	tmpPath := filepath.Join(dir, tmpName)
+
+	if err := os.Symlink(targetPath, tmpPath); err != nil {
+		return fmt.Errorf("failed to create temporary symlink %s -> %s: %w", tmpPath, targetPath, err)
+	}
+
+	// Atomically replace (rename will overwrite existing target on Unix-like systems)
+	if err := os.Rename(tmpPath, config.CurrentSymlink); err != nil {
+		// best-effort cleanup
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("failed to atomically rename %s to %s: %w", tmpPath, config.CurrentSymlink, err)
 	}
 
 	return nil
