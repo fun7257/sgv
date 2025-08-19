@@ -69,6 +69,9 @@ var latestCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Successfully switched to Go version %s\n", latestVersion)
+
+		// Auto-load environment variables for the new version
+		loadEnvVarsForCurrentShell(latestVersion)
 	},
 }
 

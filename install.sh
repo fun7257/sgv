@@ -126,15 +126,40 @@ main() {
         return
     fi
 
-    # Check if variables are already set
-    if ! grep -q "export GOROOT" "$SHELL_CONFIG_FILE"; then
+    # Check if SGV configuration is already installed
+    if ! grep -q "SGV wrapper function" "$SHELL_CONFIG_FILE"; then
         echo -e "\n# sgv (Simple Go Version) configuration" >> "$SHELL_CONFIG_FILE"
         echo "export GOROOT=\"\$HOME/.sgv/current\"" >> "$SHELL_CONFIG_FILE"
         echo "export PATH=\"\$GOROOT/bin:\$HOME/go/bin:\$PATH\"" >> "$SHELL_CONFIG_FILE"
         echo "unset GOPATH" >> "$SHELL_CONFIG_FILE"
-        info "Added GOROOT, unset GOPATH, and updated PATH in $SHELL_CONFIG_FILE."
+        echo "" >> "$SHELL_CONFIG_FILE"
+        echo "# SGV wrapper function for seamless environment variable loading" >> "$SHELL_CONFIG_FILE"
+        echo "sgv() {" >> "$SHELL_CONFIG_FILE"
+        echo "    command sgv \"\$@\"" >> "$SHELL_CONFIG_FILE"
+        echo "    local exit_code=\$?" >> "$SHELL_CONFIG_FILE"
+        echo "    # Auto-load environment variables after successful operations" >> "$SHELL_CONFIG_FILE"
+        echo "    if [ \$exit_code -eq 0 ]; then" >> "$SHELL_CONFIG_FILE"
+        echo "        # Check for version switch" >> "$SHELL_CONFIG_FILE"
+        echo "        if [ \$# -eq 1 ] && [[ \"\$1\" =~ ^go[0-9]+\\.[0-9]+(\\.[0-9]+)?\$ ]]; then" >> "$SHELL_CONFIG_FILE"
+        echo "            eval \"\$(command sgv env --shell 2>/dev/null || true)\"" >> "$SHELL_CONFIG_FILE"
+        echo "        # Check for env command with write or unset flags" >> "$SHELL_CONFIG_FILE"
+        echo "        elif [ \"\$1\" = \"env\" ] && ([ \"\$2\" = \"-w\" ] || [ \"\$2\" = \"--write\" ] || [ \"\$2\" = \"-u\" ] || [ \"\$2\" = \"--unset\" ]); then" >> "$SHELL_CONFIG_FILE"
+        echo "            eval \"\$(command sgv env --shell 2>/dev/null || true)\"" >> "$SHELL_CONFIG_FILE"
+        echo "        # Check for auto and latest commands that may switch versions" >> "$SHELL_CONFIG_FILE"
+        echo "        elif [ \"\$1\" = \"auto\" ] || [ \"\$1\" = \"latest\" ]; then" >> "$SHELL_CONFIG_FILE"
+        echo "            eval \"\$(command sgv env --shell 2>/dev/null || true)\"" >> "$SHELL_CONFIG_FILE"
+        echo "        fi" >> "$SHELL_CONFIG_FILE"
+        echo "    fi" >> "$SHELL_CONFIG_FILE"
+        echo "    return \$exit_code" >> "$SHELL_CONFIG_FILE"
+        echo "}" >> "$SHELL_CONFIG_FILE"
+        echo "" >> "$SHELL_CONFIG_FILE"
+        echo "# Load SGV environment variables for current session" >> "$SHELL_CONFIG_FILE"
+        echo "if command -v sgv >/dev/null 2>&1 && [ -L \"\$HOME/.sgv/current\" ]; then" >> "$SHELL_CONFIG_FILE"
+        echo "    eval \"\$(command sgv env --shell 2>/dev/null || true)\"" >> "$SHELL_CONFIG_FILE"
+        echo "fi" >> "$SHELL_CONFIG_FILE"
+        info "Added GOROOT, unset GOPATH, updated PATH, and enabled seamless environment variable loading in $SHELL_CONFIG_FILE."
     else
-        info "Environment variables already seem to be set in $SHELL_CONFIG_FILE. Skipping."
+        info "SGV configuration already seems to be set in $SHELL_CONFIG_FILE. Skipping."
     fi
 
     # --- Final Instructions ---

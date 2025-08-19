@@ -9,6 +9,7 @@
 - **Switch Go versions**: Instantly switch between installed Go versions.
 - **Auto switch**: Automatically switch to the required Go version for the current project based on `go.mod`.
 - **Get latest**: Install and switch to the latest Go version with one command.
+- **Environment variables**: Manage project-specific environment variables per Go version.
 - **List installed versions**: View all Go versions installed by sgv, grouped by major version.
 - **List available patch versions**: List all available patch versions for a given major version, and see which are installed.
 - **Uninstall Go versions**: Remove any installed Go version (except the currently active one).
@@ -97,6 +98,41 @@ sgv uninstall <version>
 sgv version
 ```
 - Shows the Go version used to build sgv and its commit hash
+
+### Manage Environment Variables
+
+```bash
+sgv env                           # List environment variables for current Go version
+sgv env -w KEY=VALUE             # Set environment variable for current Go version
+sgv env -u KEY                   # Remove environment variable for current Go version
+sgv env --shell                  # Output environment variables in shell format
+```
+
+**Examples:**
+```bash
+sgv env -w GOWORK=auto           # Enable Go workspace mode
+sgv env -w GODEBUG=gctrace=1     # Enable GC trace debugging
+sgv env -u GODEBUG               # Remove GODEBUG setting
+```
+
+**Key Features:**
+- **Version isolation**: Each Go version has its own environment variables
+- **Seamless loading**: Environment variables are automatically applied when switching versions or modifying them
+- **Protected variables**: Critical Go variables (GOROOT, GOPATH, etc.) cannot be modified
+- **Persistent storage**: Variables are saved per version and restored automatically
+
+---
+
+## Seamless Experience
+
+sgv provides a seamless experience with automatic environment loading:
+
+- **Automatic switching**: When you run `sgv go1.21.0`, environment variables are automatically loaded
+- **Environment management**: Changes made with `sgv env -w` or `sgv env -u` are immediately applied to your current shell
+- **Auto commands**: `sgv auto` and `sgv latest` automatically load environment variables after version switches
+- **No manual steps**: No need to run `eval` commands or restart your terminal
+
+This is achieved through a wrapper function that's automatically installed in your shell configuration.
 
 ---
 
