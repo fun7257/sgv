@@ -32,6 +32,72 @@ error() {
     exit 1
 }
 
+# Function to clean up duplicate SGV configurations
+clean_duplicate_sgv_config() {
+    local config_file="$1"
+    
+    if [ ! -f "$config_file" ]; then
+        return
+    fi
+    
+    # Count how many sgv configuration markers exist
+    local count=$(grep -c "sgv (Simple Go Version) configuration\|SGV wrapper function" "$config_file" 2>/dev/null || echo "0")
+    
+    if [ "$count" -gt 1 ]; then
+        warn "Found multiple SGV configuration blocks in $config_file. Cleaning up duplicates..."
+        
+        # Create a backup
+        local backup_file="$config_file.sgv-backup-$(date +%s)"
+        cp "$config_file" "$backup_file"
+        info "Created backup: $backup_file"
+        
+        # Remove all existing SGV configurations to avoid duplicates
+        # We'll add the current configuration afterwards
+        local temp_file=$(mktemp)
+        local skip_lines=false
+        
+        while IFS= read -r line; do
+            # Start skipping when we encounter SGV configuration
+            if echo "$line" | grep -q "sgv (Simple Go Version) configuration\|SGV wrapper function"; then
+                skip_lines=true
+                continue
+            fi
+            
+            # Continue skipping SGV-related lines
+            if [ "$skip_lines" = true ]; then
+                # Skip empty lines immediately after SGV marker
+                if echo "$line" | grep -q "^\s*$"; then
+                    continue
+                fi
+                
+                # Skip SGV-related content
+                if echo "$line" | grep -q "export GOROOT.*\.sgv\|export PATH.*\.sgv\|unset GOPATH\|sgv()\|command sgv\|eval.*sgv env\|Load SGV environment\|command -v sgv.*\.sgv\|return.*exit_code"; then
+                    continue
+                fi
+                
+                # Skip control structures and braces that are part of the function
+                if echo "$line" | grep -q "^\s*{\s*$\|^\s*}\s*$\|^\s*if \[\|^\s*elif \[\|^\s*fi\s*$\|local exit_code"; then
+                    continue
+                fi
+                
+                # If we hit a new section (not SGV related), stop skipping
+                if echo "$line" | grep -q "^[[:space:]]*[^#[:space:]]" && ! echo "$line" | grep -qi "sgv"; then
+                    skip_lines=false
+                fi
+            fi
+            
+            # Keep the line if we're not skipping
+            if [ "$skip_lines" = false ]; then
+                echo "$line" >> "$temp_file"
+            fi
+        done < "$config_file"
+        
+        # Replace the original file with cleaned version
+        mv "$temp_file" "$config_file"
+        info "Removed duplicate SGV configurations from $config_file"
+    fi
+}
+
 # --- Main Installation Logic ---
 
 main() {
@@ -126,8 +192,11 @@ main() {
         return
     fi
 
+    # Clean up any duplicate SGV configurations before adding new ones
+    clean_duplicate_sgv_config "$SHELL_CONFIG_FILE"
+
     # Check if SGV configuration is already installed
-    if ! grep -q "SGV wrapper function" "$SHELL_CONFIG_FILE"; then
+    if ! grep -q "sgv (Simple Go Version) configuration" "$SHELL_CONFIG_FILE" && ! grep -q "SGV wrapper function" "$SHELL_CONFIG_FILE"; then
         echo -e "\n# sgv (Simple Go Version) configuration" >> "$SHELL_CONFIG_FILE"
         echo "export GOROOT=\"\$HOME/.sgv/current\"" >> "$SHELL_CONFIG_FILE"
         echo "export PATH=\"\$GOROOT/bin:\$HOME/go/bin:\$PATH\"" >> "$SHELL_CONFIG_FILE"
@@ -159,7 +228,16 @@ main() {
         echo "fi" >> "$SHELL_CONFIG_FILE"
         info "Added GOROOT, unset GOPATH, updated PATH, and enabled seamless environment variable loading in $SHELL_CONFIG_FILE."
     else
-        info "SGV configuration already seems to be set in $SHELL_CONFIG_FILE. Skipping."
+        info "SGV configuration already exists in $SHELL_CONFIG_FILE. Skipping shell configuration."
+        
+        # Check if the existing configuration is outdated and suggest manual update
+        if grep -q "SGV wrapper function" "$SHELL_CONFIG_FILE"; then
+            # Check if the wrapper function includes the latest environment variable loading logic
+            if ! grep -A 20 "SGV wrapper function" "$SHELL_CONFIG_FILE" | grep -q "env --shell --clean"; then
+                warn "Your SGV shell configuration might be outdated."
+                warn "Consider removing the old SGV configuration from $SHELL_CONFIG_FILE and re-running this installer."
+            fi
+        fi
     fi
 
     # --- Final Instructions ---
