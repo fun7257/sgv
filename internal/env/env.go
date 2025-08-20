@@ -231,6 +231,33 @@ func UnsetEnvVar(version, key string) error {
 	return nil
 }
 
+// ClearAllEnvVars removes all environment variables for the given version
+func ClearAllEnvVars(version string) error {
+	// Load existing variables to check if any exist
+	vars, err := LoadEnvVars(version)
+	if err != nil {
+		return fmt.Errorf("failed to load existing variables: %w", err)
+	}
+
+	if len(vars) == 0 {
+		return fmt.Errorf("no environment variables found for version %s", version)
+	}
+
+	// Clear all variables by saving an empty map
+	emptyVars := make(EnvVars)
+	if err := SaveEnvVars(version, emptyVars); err != nil {
+		return fmt.Errorf("failed to clear variables: %w", err)
+	}
+
+	// Remove the env file if it's empty
+	envFile := GetEnvFile(version)
+	if err := os.Remove(envFile); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to remove env file: %w", err)
+	}
+
+	return nil
+}
+
 // GetCurrentVersion returns the current active Go version
 func GetCurrentVersion() (string, error) {
 	currentVersion, err := version.GetCurrentVersion()
@@ -243,4 +270,57 @@ func GetCurrentVersion() (string, error) {
 	}
 
 	return currentVersion, nil
+}
+
+// GetAllEnvVars returns all environment variables for all versions
+func GetAllEnvVars() (map[string]EnvVars, error) {
+	envDir := GetEnvDir()
+	allVars := make(map[string]EnvVars)
+
+	// Check if env directory exists
+	if _, err := os.Stat(envDir); os.IsNotExist(err) {
+		return allVars, nil
+	}
+
+	entries, err := os.ReadDir(envDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read env directory: %w", err)
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".env") {
+			version := strings.TrimSuffix(entry.Name(), ".env")
+			vars, err := LoadEnvVars(version)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load env vars for %s: %w", version, err)
+			}
+			if len(vars) > 0 {
+				allVars[version] = vars
+			}
+		}
+	}
+
+	return allVars, nil
+}
+
+// GetActiveEnvVars returns a list of environment variable names that are currently active
+func GetActiveEnvVars() ([]string, error) {
+	allVars, err := GetAllEnvVars()
+	if err != nil {
+		return nil, err
+	}
+
+	activeVars := make(map[string]bool)
+	for _, vars := range allVars {
+		for key := range vars {
+			activeVars[key] = true
+		}
+	}
+
+	result := make([]string, 0, len(activeVars))
+	for key := range activeVars {
+		result = append(result, key)
+	}
+	sort.Strings(result)
+	return result, nil
 }

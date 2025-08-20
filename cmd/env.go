@@ -13,6 +13,8 @@ var (
 	writeFlag string
 	unsetFlag string
 	shellFlag bool
+	cleanFlag bool
+	clearFlag bool
 )
 
 var envCmd = &cobra.Command{
@@ -24,12 +26,19 @@ Examples:
   sgv env                      # List all environment variables for current version
   sgv env -w GOWORK=auto      # Set GOWORK environment variable
   sgv env -u GODEBUG          # Remove GODEBUG environment variable
-  sgv env --shell             # Output environment variables in shell format`,
+  sgv env --clear             # Clear all environment variables for current version
+  sgv env --shell             # Output environment variables in shell format
+  sgv env --shell --clean     # Output shell format with cleanup of old variables`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Get current version
 		currentVersion, err := env.GetCurrentVersion()
 		if err != nil {
 			return fmt.Errorf("cannot determine current Go version: %w", err)
+		}
+
+		// Handle clear operation
+		if clearFlag {
+			return handleClearFlag(currentVersion)
 		}
 
 		// Handle shell output format
@@ -90,6 +99,49 @@ func handleUnsetFlag(version, key string) error {
 	return nil
 }
 
+func handleClearFlag(version string) error {
+	// Load existing variables to show what will be cleared
+	vars, err := env.LoadEnvVars(version)
+	if err != nil {
+		return fmt.Errorf("failed to load environment variables: %w", err)
+	}
+
+	if len(vars) == 0 {
+		fmt.Printf("No environment variables set for Go version %s\n", version)
+		return nil
+	}
+
+	// Show what will be cleared
+	fmt.Printf("The following environment variables will be cleared for Go version %s:\n", version)
+	keys := make([]string, 0, len(vars))
+	for key := range vars {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		fmt.Printf("  %s=%s\n", key, vars[key])
+	}
+
+	// Confirm with user
+	fmt.Print("Are you sure you want to clear all these variables? (y/N): ")
+	var response string
+	fmt.Scanln(&response)
+
+	if strings.ToLower(strings.TrimSpace(response)) != "y" {
+		fmt.Println("Operation cancelled.")
+		return nil
+	}
+
+	// Clear all variables
+	if err := env.ClearAllEnvVars(version); err != nil {
+		return err
+	}
+
+	fmt.Printf("All environment variables cleared for Go version %s\n", version)
+	return nil
+}
+
 func listEnvVars(version string) error {
 	// Load environment variables
 	vars, err := env.LoadEnvVars(version)
@@ -122,13 +174,29 @@ func listEnvVars(version string) error {
 }
 
 func outputShellFormat(version string) error {
-	// Load environment variables
+	// Clean environment variables if --clean flag is specified
+	if cleanFlag {
+		activeVars, err := env.GetActiveEnvVars()
+		if err != nil {
+			return fmt.Errorf("failed to get active environment variables: %w", err)
+		}
+
+		// Unset all active environment variables to ensure clean switch
+		for _, key := range activeVars {
+			// Skip protected variables
+			if !env.IsProtectedVar(key) {
+				fmt.Printf("unset %s\n", key)
+			}
+		}
+	}
+
+	// Load environment variables for the current version
 	vars, err := env.LoadEnvVars(version)
 	if err != nil {
 		return fmt.Errorf("failed to load environment variables: %w", err)
 	}
 
-	// Output in shell format
+	// Set the current version's environment variables
 	for key, value := range vars {
 		fmt.Printf("export %s='%s'\n", key, value)
 	}
@@ -141,9 +209,11 @@ func init() {
 	envCmd.Flags().StringVarP(&writeFlag, "write", "w", "", "Set environment variable (format: KEY=VALUE)")
 	envCmd.Flags().StringVarP(&unsetFlag, "unset", "u", "", "Remove environment variable")
 	envCmd.Flags().BoolVar(&shellFlag, "shell", false, "Output environment variables in shell format")
+	envCmd.Flags().BoolVar(&cleanFlag, "clean", false, "Clean (unset) all environment variables before setting new ones (only works with --shell)")
+	envCmd.Flags().BoolVar(&clearFlag, "clear", false, "Clear all environment variables for current version")
 
-	// Make flags mutually exclusive
-	envCmd.MarkFlagsMutuallyExclusive("write", "unset", "shell")
+	// Make flags mutually exclusive (except clean can be used with shell)
+	envCmd.MarkFlagsMutuallyExclusive("write", "unset", "clear")
 
 	rootCmd.AddCommand(envCmd)
 }
