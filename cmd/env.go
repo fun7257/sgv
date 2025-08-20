@@ -174,30 +174,44 @@ func listEnvVars(version string) error {
 }
 
 func outputShellFormat(version string) error {
-	// Clean environment variables if --clean flag is specified
-	if cleanFlag {
-		activeVars, err := env.GetActiveEnvVars()
-		if err != nil {
-			return fmt.Errorf("failed to get active environment variables: %w", err)
-		}
-
-		// Unset all active environment variables to ensure clean switch
-		for _, key := range activeVars {
-			// Skip protected variables
-			if !env.IsProtectedVar(key) {
-				fmt.Printf("unset %s\n", key)
-			}
-		}
-	}
-
-	// Load environment variables for the current version
-	vars, err := env.LoadEnvVars(version)
+	// Load environment variables for the current version first
+	currentVars, err := env.LoadEnvVars(version)
 	if err != nil {
 		return fmt.Errorf("failed to load environment variables: %w", err)
 	}
 
+	// Clean environment variables if --clean flag is specified
+	if cleanFlag {
+		// Get all environment variables from all versions
+		allVars, err := env.GetAllEnvVars()
+		if err != nil {
+			return fmt.Errorf("failed to get all environment variables: %w", err)
+		}
+
+		// Collect variables from other versions (not current version)
+		otherVersionVars := make(map[string]bool)
+		for ver, vars := range allVars {
+			if ver != version { // Skip current version
+				for key := range vars {
+					otherVersionVars[key] = true
+				}
+			}
+		}
+
+		// Unset variables that exist in other versions but not in current version
+		for key := range otherVersionVars {
+			// Skip protected variables
+			if !env.IsProtectedVar(key) {
+				// Only unset if this variable is NOT in the current version
+				if _, existsInCurrent := currentVars[key]; !existsInCurrent {
+					fmt.Printf("unset %s\n", key)
+				}
+			}
+		}
+	}
+
 	// Set the current version's environment variables
-	for key, value := range vars {
+	for key, value := range currentVars {
 		fmt.Printf("export %s='%s'\n", key, value)
 	}
 
