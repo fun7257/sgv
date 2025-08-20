@@ -71,7 +71,7 @@ clean_duplicate_sgv_config() {
                 fi
                 
                 # Skip SGV-related content
-                if echo "$line" | grep -q "export GOROOT.*\.sgv\|export PATH.*\.sgv\|unset GOPATH\|sgv()\|command sgv\|eval.*sgv env\|Load SGV environment\|command -v sgv.*\.sgv\|return.*exit_code"; then
+                if echo "$line" | grep -q "export GOROOT.*\.sgv\|export PATH.*\.sgv\|unset GOPATH\|sgv()\|command sgv\|eval.*sgv env\|Load SGV environment\|command -v sgv.*\.sgv\|return.*exit_code\|env --shell --clean\|env --shell\|\-\-clean"; then
                     continue
                 fi
                 
@@ -208,7 +208,7 @@ main() {
         echo "    local exit_code=\$?" >> "$SHELL_CONFIG_FILE"
         echo "    # Auto-load environment variables after successful operations" >> "$SHELL_CONFIG_FILE"
         echo "    if [ \$exit_code -eq 0 ]; then" >> "$SHELL_CONFIG_FILE"
-        echo "        # Check for version switch" >> "$SHELL_CONFIG_FILE"
+        echo "        # Check for version switch (direct version argument)" >> "$SHELL_CONFIG_FILE"
         echo "        if [ \$# -eq 1 ] && [[ \"\$1\" =~ ^go[0-9]+\\.[0-9]+(\\.[0-9]+)?\$ ]]; then" >> "$SHELL_CONFIG_FILE"
         echo "            eval \"\$(command sgv env --shell --clean 2>/dev/null || true)\"" >> "$SHELL_CONFIG_FILE"
         echo "        # Check for env command with write or unset flags" >> "$SHELL_CONFIG_FILE"
@@ -224,7 +224,7 @@ main() {
         echo "" >> "$SHELL_CONFIG_FILE"
         echo "# Load SGV environment variables for current session" >> "$SHELL_CONFIG_FILE"
         echo "if command -v sgv >/dev/null 2>&1 && [ -L \"\$HOME/.sgv/current\" ]; then" >> "$SHELL_CONFIG_FILE"
-        echo "    eval \"\$(command sgv env --shell 2>/dev/null || true)\"" >> "$SHELL_CONFIG_FILE"
+        echo "    eval \"\$(command sgv env --shell --clean 2>/dev/null || true)\"" >> "$SHELL_CONFIG_FILE"
         echo "fi" >> "$SHELL_CONFIG_FILE"
         info "Added GOROOT, unset GOPATH, updated PATH, and enabled seamless environment variable loading in $SHELL_CONFIG_FILE."
     else
@@ -233,8 +233,13 @@ main() {
         # Check if the existing configuration is outdated and suggest manual update
         if grep -q "SGV wrapper function" "$SHELL_CONFIG_FILE"; then
             # Check if the wrapper function includes the latest environment variable loading logic
-            if ! grep -A 20 "SGV wrapper function" "$SHELL_CONFIG_FILE" | grep -q "env --shell --clean"; then
+            if ! grep -A 25 "SGV wrapper function" "$SHELL_CONFIG_FILE" | grep -q "env --shell --clean"; then
                 warn "Your SGV shell configuration might be outdated."
+                warn "Consider removing the old SGV configuration from $SHELL_CONFIG_FILE and re-running this installer."
+            fi
+            # Also check if the session loading part uses --clean
+            if ! grep -A 5 "Load SGV environment" "$SHELL_CONFIG_FILE" | grep -q "env --shell --clean"; then
+                warn "Your SGV session loading configuration might be outdated."
                 warn "Consider removing the old SGV configuration from $SHELL_CONFIG_FILE and re-running this installer."
             fi
         fi
