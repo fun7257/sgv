@@ -1,65 +1,75 @@
 ## sgv (Simple Go Version) – AI Contributor Quick Guide
 
-Purpose: Lightweight Go version manager (install, switch, auto-switch, list, uninstall, latest, sub‑version listing). Focus on predictable file layout, minimal deps, clear CLI UX.
+Purpose: Lightweight Go version manager (install, switch, auto-switch, list, uninstall, latest, sub‑version listing) with per-version environment variable management. Focus on predictable file layout, minimal deps, clear CLI UX, and seamless shell integration.
 
 ### Architecture & Flow
-1. Entry: `main.go` -> `cmd/root.go` (Cobra). Root command also acts as implicit "install & switch" when passed a version arg.
-2. Command set lives in `cmd/`: each file defines and `init()`-registers a `*cobra.Command` (e.g. `auto.go`, `install.go`, `list.go`, `sub.go`, `uninstall.go`, `version.go`). Keep new commands self‑contained; side effects only in `Run/RunE`.
-3. Core logic split under `internal/`:
-  - `internal/config`: one-time `Init()` (run via `cobra.OnInitialize`) sets paths (`SgvRoot=~/.sgv`, `VersionsDir`, `CurrentSymlink`) and resolves `DownloadURLPrefix` (env override `SGV_DOWNLOAD_URL_PREFIX`, ensure trailing '/'). Never duplicate these path computations elsewhere.
-  - `internal/version`: discovery (local via dir read, remote via JSON API + cache), switching (symlink), version metadata (build info via `debug.ReadBuildInfo`). Remote fetch creates per (OS, Arch) entries; Windows filtered out.
-  - `internal/installer`: download + extract tarball to `VersionsDir/<goX.Y.Z>` with a progress bar, then leaves nested `go/` directory intact (symlink points to that subdir).
-4. Data flow (install & switch path): CLI arg -> normalize version (ensure `go` prefix) -> validate support (>=1.13) -> optional `go.mod` compatibility gate (semver compare via `golang.org/x/mod/semver`) -> install if missing (`installer.Install`) -> `version.SwitchToVersion` replaces `~/.sgv/current` symlink -> user shell (preconfigured by `install.sh`) picks new `GOROOT` binaries.
-5. Auto mode (`auto.go`): parses `go.mod` lines for `go` and `toolchain` directives (prefers higher); normalizes `>=1.21` minor to `.0`; prompts user before switching; reuses root command programmatically.
+1. **Entry**: `main.go` -> `cmd/root.go` (Cobra). Root command also acts as implicit "install & switch" when passed a version arg.
+2. **Command Layer**: Lives in `cmd/` - each file defines and `init()`-registers a `*cobra.Command`. Keep new commands self‑contained; side effects only in `Run/RunE`. Notable: `env.go` manages per-version environment variables with flags `-w`, `-u`, `--shell`, `--clean`, `-a`.
+3. **Core Logic**: Split under `internal/`:
+   - `internal/config`: One-time `Init()` (run via `cobra.OnInitialize`) sets paths (`SgvRoot=~/.sgv`, `VersionsDir`, `CurrentSymlink`) and resolves `DownloadURLPrefix` (env override `SGV_DOWNLOAD_URL_PREFIX`, ensure trailing '/').
+   - `internal/version`: Discovery (local via dir read, remote via JSON API + cache), switching (symlink), version metadata (build info via `debug.ReadBuildInfo`). Remote fetch creates per (OS, Arch) entries; Windows filtered out.
+   - `internal/installer`: Download + extract tarball to `VersionsDir/<goX.Y.Z>` with progress bar, leaves nested `go/` directory intact (symlink points to that subdir).
+   - `internal/env`: **Critical component** - manages per-version environment variables stored as `~/.sgv/env/<version>.env` files. Handles protected variables (GOROOT, GOPATH, etc.), atomic file operations, and shell output generation.
+4. **Data Flow**: CLI arg -> normalize version (ensure `go` prefix) -> validate support (>=1.13) -> optional `go.mod` compatibility gate -> install if missing -> `version.SwitchToVersion` replaces symlink -> shell wrapper auto-loads env vars.
+5. **Shell Integration**: `install.sh` creates a `sgv()` wrapper function that intercepts commands and auto-runs `eval $(sgv env --shell --clean)` after successful version switches, env modifications, or auto/latest commands.
 
-### Key Conventions / Patterns
-* Always store versions with full patch: e.g. `go1.22.1` (auto-normalization ensures this for >=1.21 when coming from `go.mod`).
-* Local versions = directory names inside `VersionsDir` (ONLY directories count). Current version derived from parent directory of symlink target. Don't parse `GOROOT`.
-* Symlink model: `CurrentSymlink` -> `<VersionsDir>/<version>/go`; never point directly at binary.
-* Remote versions API: `GET <DownloadURLPrefix>?mode=json&include=all`; cached (temp file) for 10 minutes (`internal/version/cache.go`). On fetch error: try stale cache before failing.
-* Platform filter: ignore `windows`; user platform determined at runtime for compatibility display (see `cmd/sub.go`).
-* Error style: wrap with context `fmt.Errorf("<action>: %w", err)`; user-facing errors print to stderr then `os.Exit(1)` in command layer only (library packages return errors). Avoid exiting inside `internal/*`.
-* Version comparisons: always normalize to semver with `normalizeGoVersion` before `semver.Compare`.
-* Interactive confirmations: simple `fmt.Scanln` or `bufio.Reader`; keep prompts terse (see `auto.go`, `uninstall.go`).
+### Environment Variable System (Critical)
+* **Storage**: Each Go version gets `~/.sgv/env/<version>.env` with `KEY=VALUE` format.
+* **Protection**: Built-in Go vars (GOROOT, GOPATH, GOPROXY, etc.) are protected from modification.
+* **Shell Integration**: `sgv env --shell` outputs `export` commands; `--clean` also outputs `unset` for variables from other versions to prevent conflicts.
+* **Commands**: `sgv env -w KEY=VALUE` (set), `sgv env -u KEY` (unset), `sgv env --clear` (clear all), `sgv env -a` (list all versions).
+* **Atomic Operations**: Uses temp files + rename for safe concurrent access with file mutex.
+
+### Version Handling Patterns
+* **Normalization**: Always store with full patch (e.g. `go1.22.1`). Commands accept both `1.22.1` and `go1.22.1` formats.
+* **Local Discovery**: Directory names in `VersionsDir` (ONLY directories count). Current version from symlink target parent.
+* **Symlink Model**: `CurrentSymlink` -> `<VersionsDir>/<version>/go`; never point directly at binary.
+* **Remote Cache**: 10-minute cache in temp dir (`sgv-remote-versions-cache.json`). Stale cache used on API failure.
+
+### Key Conventions
+* **Error Handling**: Wrap with context `fmt.Errorf("<action>: %w", err)`. CLI layer prints to stderr + `os.Exit(1)`. Library packages return errors only.
+* **Interactive Prompts**: Simple `fmt.Scanln` or `bufio.Reader`; keep terse (see `auto.go`, `uninstall.go`, `env.go --clear`).
+* **Version Comparisons**: Always normalize to semver with `normalizeGoVersion` before `semver.Compare`.
+* **Mutex Usage**: File operations in `internal/env` use `fileMutex` for concurrent safety.
+
+### Critical Developer Workflows
+* **Local Build**: `make local` (builds + copies to `/usr/local/bin` with sudo)
+* **Development**: `make build` -> `./sgv <command>` for testing
+* **Shell Function**: Test with real shell functions in `install.sh` - regex patterns are tricky
+* **Env Testing**: Check `internal/env/env_test.go` for comprehensive test patterns including edge cases
+
+### Shell Integration Patterns
+The `install.sh` script generates a `sgv()` wrapper function with these trigger patterns:
+```bash
+# Version switch: sgv go1.22.1 or sgv 1.22.1
+if [ $# -eq 1 ] && [[ "$1" =~ ^(go)?[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]
+
+# Env modification: sgv env -w KEY=VALUE, sgv env -u KEY  
+elif [ "$1" = "env" ] && { [ "$2" = "-w" ] || [ "$2" = "--write" ] || [ "$2" = "-u" ] || [ "$2" = "--unset" ]; }
+
+# Auto commands: sgv auto, sgv latest
+elif [ "$1" = "auto" ] || [ "$1" = "latest" ]
+```
 
 ### External Dependencies (Keep Minimal)
-* `github.com/spf13/cobra` – CLI framework.
-* `github.com/samber/lo` – simple functional helpers (used for filtering stable versions).
-* `github.com/schollz/progressbar/v3` – download progress UI.
-* `golang.org/x/mod/semver` – semver comparison.
-Avoid adding heavy deps; prefer stdlib where possible.
+* `github.com/spf13/cobra` – CLI framework
+* `github.com/samber/lo` – functional helpers  
+* `github.com/schollz/progressbar/v3` – download UI
+* `golang.org/x/mod/semver` – version comparison
 
-### Developer Workflows
-* Build (local dev): `go build -o sgv .` or `make build` (uses root module; binary name must stay `sgv`).
-* Install to PATH (dev): `go install .` or run `install.sh` for full user setup (adds env lines to shell config). Release tarballs expected as `sgv_<version>_<os>_<arch>.tar.gz` consumed by `install.sh`.
-* Releasing: bump Git tag; runtime self-report uses `debug.ReadBuildInfo` (no manual version constant editing needed unless changing default placeholders). Ensure CI build injects proper VCS info.
-* Debug: add temporary `fmt.Printf` statements; no structured logger present.
-* Cache invalidation (manual): delete temp file returned by `VersionCache.GetCacheInfo()` (location: system temp dir, filename `sgv-remote-versions-cache.json`).
+### Adding New Commands
+1. Create `cmd/newcmd.go` with `cobra.Command`
+2. Register in `init()`: `rootCmd.AddCommand(newCmd)`
+3. Business logic in `internal/` if complex
+4. Follow env var loading patterns if command affects versions
+5. Update shell wrapper in `install.sh` if auto-loading needed
 
-### Adding a New Command (Example)
-1. Create `cmd/foo.go` defining `var fooCmd = &cobra.Command{ ... }`.
-2. In its `init()`, call `rootCmd.AddCommand(fooCmd)`.
-3. Put business logic in a new/internal package if it grows; keep CLI layer narrow (arg parsing, I/O, exit codes).
-4. Follow normalization rules if accepting version input (ensure prefix `go`, validate support, maybe semver compare if interacting with `go.mod`).
-
-### Common Pitfalls / Edge Cases
-* Do NOT attempt to uninstall the active version (guard exists in `uninstall.go`). If changing logic, preserve this check before deletion.
-* Windows must remain unsupported (explicit exits in `root.go` and `installer.Install`). Any platform expansion should centralize gate logic in `checkPlatformSupport()`.
-* `auto` command should emit no output when already on correct version (intentional quiet success). Preserve this to avoid noisy shells.
-* When modifying extraction, keep per-file close semantics to avoid "too many open files" (see comment in `extractTarGz`).
-* Maintain trailing slash enforcement for custom `SGV_DOWNLOAD_URL_PREFIX`.
-
-### Where To Look For Examples
-* Version normalization & compatibility: `cmd/util.go`.
-* Remote fetch + cache strategy: `internal/version/version.go` + `cache.go`.
-* Installation & extraction details: `internal/installer/installer.go`.
-* Grouped listing + coloring: `cmd/list.go` and `cmd/sub.go` (ANSI + `fatih/color`).
-
-### Safe Extension Ideas
-* Add a `cache` subcommand to show/clear remote version cache (reusing `VersionCache` methods).
-* Add a `which` command to print active Go binary path (`CurrentSymlink/bin/go`).
-
-Keep changes small, reuse existing helpers, and surface user-visible alterations via clear CLI messages.
+### Critical Pitfalls
+* **Never uninstall active version** (guard in `uninstall.go`)
+* **Windows unsupported** (explicit checks in `root.go`, `installer.go`)
+* **Shell regex escaping** in `install.sh` - test thoroughly
+* **Protected env vars** - check `env.IsProtectedVar()` before modifications
+* **File operations** - use atomic patterns from `env.SaveEnvVars()`
 
 ---
-Questions or unclear patterns? Point to the specific file + line context and propose an adjustment before large refactors.
+Questions or unclear patterns? Point to specific file + line for context before large changes.

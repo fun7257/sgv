@@ -7,4 +7,7 @@ clean:
 install:
 	go install .
 
+local: build
+	sudo cp sgv /usr/local/bin/sgv
+
 .PHONY: build clean install

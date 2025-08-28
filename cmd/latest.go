@@ -5,6 +5,7 @@ import (
 	"os"
 	"slices"
 
+	"github.com/fun7257/sgv/internal/env"
 	"github.com/fun7257/sgv/internal/installer"
 	"github.com/fun7257/sgv/internal/version"
 	"github.com/spf13/cobra"
@@ -67,11 +68,12 @@ var latestCmd = &cobra.Command{
 			fmt.Fprintf(os.Stderr, "Error switching to Go version %s: %v\n", latestVersion, err)
 			os.Exit(1)
 		}
-
 		fmt.Printf("Successfully switched to Go version %s\n", latestVersion)
 
-		// Auto-load environment variables for the new version
-		loadEnvVarsForCurrentShell(latestVersion)
+		// Check for and notify about environment variables
+		if envVars, err := env.LoadEnvVars(latestVersion); err == nil && len(envVars) > 0 {
+			fmt.Printf("Loading %d custom environment variables for %s...\n", len(envVars), latestVersion)
+		}
 	},
 }
 

@@ -15,6 +15,7 @@ var (
 	shellFlag bool
 	cleanFlag bool
 	clearFlag bool
+	allFlag   bool
 )
 
 var envCmd = &cobra.Command{
@@ -23,13 +24,18 @@ var envCmd = &cobra.Command{
 	Long: `Manage environment variables for specific Go versions.
 
 Examples:
-  sgv env                      # List all environment variables for current version
+  sgv env                     # List all environment variables for current version
   sgv env -w GOWORK=auto      # Set GOWORK environment variable
   sgv env -u GODEBUG          # Remove GODEBUG environment variable
   sgv env --clear             # Clear all environment variables for current version
   sgv env --shell             # Output environment variables in shell format
-  sgv env --shell --clean     # Output shell format with cleanup of old variables`,
+  sgv env --shell --clean     # Output shell format with cleanup of old variables
+  sgv env -a                  # List all Go versions with configured environment variables`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if allFlag {
+			return listAllEnvVars()
+		}
+
 		// Get current version
 		currentVersion, err := env.GetCurrentVersion()
 		if err != nil {
@@ -59,6 +65,43 @@ Examples:
 		// Default: list all environment variables
 		return listEnvVars(currentVersion)
 	},
+}
+
+// List all Go versions with their configured environment variables
+func listAllEnvVars() error {
+	allVars, err := env.GetAllEnvVars()
+	if err != nil {
+		return fmt.Errorf("failed to get all environment variables: %w", err)
+	}
+	if len(allVars) == 0 {
+		fmt.Println("No custom environment variables set for any Go version.")
+		return nil
+	}
+	// Sort versions for consistent output
+	versions := make([]string, 0, len(allVars))
+	for ver := range allVars {
+		versions = append(versions, ver)
+	}
+	sort.Strings(versions)
+	for _, ver := range versions {
+		fmt.Printf("Go version: %s\n", ver)
+		vars := allVars[ver]
+		if len(vars) == 0 {
+			fmt.Println("  (No custom environment variables)")
+			continue
+		}
+		// Sort keys for consistent output
+		keys := make([]string, 0, len(vars))
+		for key := range vars {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			fmt.Printf("  %s=%s\n", key, vars[key])
+		}
+		fmt.Println("")
+	}
+	return nil
 }
 
 func handleWriteFlag(version, writeValue string) error {
@@ -225,9 +268,10 @@ func init() {
 	envCmd.Flags().BoolVar(&shellFlag, "shell", false, "Output environment variables in shell format")
 	envCmd.Flags().BoolVar(&cleanFlag, "clean", false, "Clean (unset) all environment variables before setting new ones (only works with --shell)")
 	envCmd.Flags().BoolVar(&clearFlag, "clear", false, "Clear all environment variables for current version")
+	envCmd.Flags().BoolVarP(&allFlag, "all", "a", false, "List all Go versions with configured environment variables")
 
 	// Make flags mutually exclusive (except clean can be used with shell)
-	envCmd.MarkFlagsMutuallyExclusive("write", "unset", "clear")
+	envCmd.MarkFlagsMutuallyExclusive("write", "unset", "clear", "all")
 
 	rootCmd.AddCommand(envCmd)
 }

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/fun7257/sgv/internal/config"
+	"github.com/fun7257/sgv/internal/env"
 	"github.com/fun7257/sgv/internal/installer"
 	"github.com/fun7257/sgv/internal/version"
 
@@ -72,20 +73,11 @@ This tool allows you to easily install and switch between different Go versions.
 
 		fmt.Printf("Successfully switched to Go version %s\n", versionStr)
 
-		// Auto-load environment variables for the new version
-		loadEnvVarsForCurrentShell(versionStr)
+		// Check for and notify about environment variables
+		if envVars, err := env.LoadEnvVars(versionStr); err == nil && len(envVars) > 0 {
+			fmt.Printf("Loading %d custom environment variables for %s...\n", len(envVars), versionStr)
+		}
 	},
-}
-
-// loadEnvVarsForCurrentShell loads environment variables for the given version
-// and outputs shell commands to set them in the current shell
-func loadEnvVarsForCurrentShell(version string) {
-	// Note: This function is called after version switching
-	// The wrapper function in the shell will handle environment variable loading
-	// by calling 'sgv env --shell --clean' through eval
-
-	// Simply inform user about the switch completion
-	fmt.Printf("Switched to Go version %s\n", version)
 }
 
 func Execute() {
