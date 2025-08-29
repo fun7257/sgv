@@ -1,4 +1,7 @@
-build:
+test:
+	go test ./...
+
+build: test
 	go build -o sgv .
 
 clean:
@@ -10,4 +13,4 @@ install:
 local: build
 	sudo cp sgv /usr/local/bin/sgv
 
-.PHONY: build clean install
+.PHONY: build clean install test local
