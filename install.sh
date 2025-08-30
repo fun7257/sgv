@@ -32,70 +32,55 @@ error() {
     exit 1
 }
 
-# Function to clean up duplicate SGV configurations
-clean_duplicate_sgv_config() {
+# Function to update SGV shell configuration by replacing the entire configuration block
+update_sgv_config() {
     local config_file="$1"
-    
-    if [ ! -f "$config_file" ]; then
-        return
-    fi
-    
-    # Count how many sgv configuration markers exist
-    local count=$(grep -c "sgv (Simple Go Version) configuration\|SGV wrapper function" "$config_file" 2>/dev/null || echo "0")
-    
-    if [ "$count" -gt 1 ]; then
-        warn "Found multiple SGV configuration blocks in $config_file. Cleaning up duplicates..."
-        
-        # Create a backup
-        local backup_file="$config_file.sgv-backup-$(date +%s)"
-        cp "$config_file" "$backup_file"
-        info "Created backup: $backup_file"
-        
-        # Remove all existing SGV configurations to avoid duplicates
-        # We'll add the current configuration afterwards
+
+    info "Updating SGV shell configuration in $config_file..."
+
+    # Remove all existing SGV configurations to avoid duplicates
+    if grep -q ">>> SGV CONFIGURATION START <<<" "$config_file"; then
+        info "Found existing SGV configuration. Removing it before adding the new one..."
         local temp_file=$(mktemp)
-        local skip_lines=false
-        
-        while IFS= read -r line; do
-            # Start skipping when we encounter SGV configuration
-            if echo "$line" | grep -q "sgv (Simple Go Version) configuration\|SGV wrapper function"; then
-                skip_lines=true
-                continue
-            fi
-            
-            # Continue skipping SGV-related lines
-            if [ "$skip_lines" = true ]; then
-                # Skip empty lines immediately after SGV marker
-                if echo "$line" | grep -q "^\s*$"; then
-                    continue
-                fi
-                
-                # Skip SGV-related content
-                if echo "$line" | grep -q "export GOROOT.*\.sgv\|export PATH.*\.sgv\|unset GOPATH\|sgv()\|command sgv\|eval.*sgv env\|Load SGV environment\|command -v sgv.*\.sgv\|return.*exit_code\|env --shell --clean\|env --shell\|\-\-clean"; then
-                    continue
-                fi
-                
-                # Skip control structures and braces that are part of the function
-                if echo "$line" | grep -q "^\s*{\s*$\|^\s*}\s*$\|^\s*if \[\|^\s*elif \[\|^\s*fi\s*$\|local exit_code"; then
-                    continue
-                fi
-                
-                # If we hit a new section (not SGV related), stop skipping
-                if echo "$line" | grep -q "^[[:space:]]*[^#[:space:]]" && ! echo "$line" | grep -qi "sgv"; then
-                    skip_lines=false
-                fi
-            fi
-            
-            # Keep the line if we're not skipping
-            if [ "$skip_lines" = false ]; then
-                echo "$line" >> "$temp_file"
-            fi
-        done < "$config_file"
-        
-        # Replace the original file with cleaned version
+        sed '/# >>> SGV CONFIGURATION START <<</,/# >>> SGV CONFIGURATION END <<</d' "$config_file" > "$temp_file"
         mv "$temp_file" "$config_file"
-        info "Removed duplicate SGV configurations from $config_file"
+        info "Removed old SGV configuration block."
     fi
+
+    # Add new configuration at the end
+    info "Adding new SGV configuration..."
+    echo -e "\n# >>> SGV CONFIGURATION START <<<" >> "$config_file"
+    echo "# sgv (Simple Go Version) configuration" >> "$config_file"
+    echo "export GOROOT=\"\$HOME/.sgv/current\"" >> "$config_file"
+    echo "export PATH=\"\$GOROOT/bin:\$HOME/go/bin:\$PATH\"" >> "$config_file"
+    echo "unset GOPATH" >> "$config_file"
+    echo "" >> "$config_file"
+    echo "# SGV wrapper function for seamless environment variable loading" >> "$config_file"
+    echo "sgv() {" >> "$config_file"
+    echo "    command sgv \"\$@\"" >> "$config_file"
+    echo "    local exit_code=\$?" >> "$config_file"
+    echo "    # Auto-load environment variables after successful operations" >> "$config_file"
+    echo "    if [ \$exit_code -eq 0 ]; then" >> "$config_file"
+    echo "        # Check for version switch (direct version argument)" >> "$config_file"
+    echo "        if [ \$# -eq 1 ] && [[ \"\$1\" =~ ^(go)?[0-9]+\\.[0-9]+(\\.[0-9]+)?\$ ]]; then" >> "$config_file"
+    echo "            eval \"\$(command sgv env --shell --clean 2>/dev/null || true)\"" >> "$config_file"
+    echo "        # Check for env command with write or unset flags" >> "$config_file"
+    echo "        elif [ \"\$1\" = \"env\" ] && { [ \"\$2\" = \"-w\" ] || [ \"\$2\" = \"--write\" ] || [ \"\$2\" = \"-u\" ] || [ \"\$2\" = \"--unset\" ]; }; then" >> "$config_file"
+    echo "            eval \"\$(command sgv env --shell 2>/dev/null || true)\"" >> "$config_file"
+    echo "        # Check for auto, latest, and sub commands that may switch versions" >> "$config_file"
+    echo "        elif [ \"\$1\" = \"auto\" ] || [ \"\$1\" = \"latest\" ] || [ \"\$1\" = \"sub\" ]; then" >> "$config_file"
+    echo "            eval \"\$(command sgv env --shell --clean 2>/dev/null || true)\"" >> "$config_file"
+    echo "        fi" >> "$config_file"
+    echo "    fi" >> "$config_file"
+    echo "    return \$exit_code" >> "$config_file"
+    echo "}" >> "$config_file"
+    echo "" >> "$config_file"
+    echo "# Load SGV environment variables for current session" >> "$config_file"
+    echo "if command -v sgv >/dev/null 2>&1 && [ -L \"\$HOME/.sgv/current\" ]; then" >> "$config_file"
+    echo "    eval \"\$(command sgv env --shell --clean 2>/dev/null || true)\"" >> "$config_file"
+    echo "fi" >> "$config_file"
+    echo "# >>> SGV CONFIGURATION END <<<" >> "$config_file"
+    info "Successfully added SGV configuration to $config_file."
 }
 
 # --- Main Installation Logic ---
@@ -192,58 +177,8 @@ main() {
         return
     fi
 
-    # Clean up any duplicate SGV configurations before adding new ones
-    clean_duplicate_sgv_config "$SHELL_CONFIG_FILE"
-
-    # Check if SGV configuration is already installed
-    if ! grep -q "sgv (Simple Go Version) configuration" "$SHELL_CONFIG_FILE" && ! grep -q "SGV wrapper function" "$SHELL_CONFIG_FILE"; then
-        echo -e "\n# sgv (Simple Go Version) configuration" >> "$SHELL_CONFIG_FILE"
-        echo "export GOROOT=\"\$HOME/.sgv/current\"" >> "$SHELL_CONFIG_FILE"
-        echo "export PATH=\"\$GOROOT/bin:\$HOME/go/bin:\$PATH\"" >> "$SHELL_CONFIG_FILE"
-        echo "unset GOPATH" >> "$SHELL_CONFIG_FILE"
-        echo "" >> "$SHELL_CONFIG_FILE"
-        echo "# SGV wrapper function for seamless environment variable loading" >> "$SHELL_CONFIG_FILE"
-        echo "sgv() {" >> "$SHELL_CONFIG_FILE"
-        echo "    command sgv \"\$@\"" >> "$SHELL_CONFIG_FILE"
-        echo "    local exit_code=\$?" >> "$SHELL_CONFIG_FILE"
-        echo "    # Auto-load environment variables after successful operations" >> "$SHELL_CONFIG_FILE"
-        echo "    if [ \$exit_code -eq 0 ]; then" >> "$SHELL_CONFIG_FILE"
-        echo "        # Check for version switch (direct version argument)" >> "$SHELL_CONFIG_FILE"
-        echo "        if [ \$# -eq 1 ] && [[ \"\$1\" =~ ^(go)?[0-9]+\\.[0-9]+(\\.[0-9]+)?\$ ]]; then" >> "$SHELL_CONFIG_FILE"
-        echo "            eval \"\$(command sgv env --shell --clean 2>/dev/null || true)\"" >> "$SHELL_CONFIG_FILE"
-        echo "        # Check for env command with write or unset flags" >> "$SHELL_CONFIG_FILE"
-        echo "        elif [ \"\$1\" = \"env\" ] && { [ \"\$2\" = \"-w\" ] || [ \"\$2\" = \"--write\" ] || [ \"\$2\" = \"-u\" ] || [ \"\$2\" = \"--unset\" ]; }; then" >> "$SHELL_CONFIG_FILE"
-        echo "            eval \"\$(command sgv env --shell 2>/dev/null || true)\"" >> "$SHELL_CONFIG_FILE"
-        echo "        # Check for auto and latest commands that may switch versions" >> "$SHELL_CONFIG_FILE"
-        echo "        elif [ \"\$1\" = \"auto\" ] || [ \"\$1\" = \"latest\" ]; then" >> "$SHELL_CONFIG_FILE"
-        echo "            eval \"\$(command sgv env --shell --clean 2>/dev/null || true)\"" >> "$SHELL_CONFIG_FILE"
-        echo "        fi" >> "$SHELL_CONFIG_FILE"
-        echo "    fi" >> "$SHELL_CONFIG_FILE"
-        echo "    return \$exit_code" >> "$SHELL_CONFIG_FILE"
-        echo "}" >> "$SHELL_CONFIG_FILE"
-        echo "" >> "$SHELL_CONFIG_FILE"
-        echo "# Load SGV environment variables for current session" >> "$SHELL_CONFIG_FILE"
-        echo "if command -v sgv >/dev/null 2>&1 && [ -L \"\$HOME/.sgv/current\" ]; then" >> "$SHELL_CONFIG_FILE"
-        echo "    eval \"\$(command sgv env --shell --clean 2>/dev/null || true)\"" >> "$SHELL_CONFIG_FILE"
-        echo "fi" >> "$SHELL_CONFIG_FILE"
-        info "Added GOROOT, unset GOPATH, updated PATH, and enabled seamless environment variable loading in $SHELL_CONFIG_FILE."
-    else
-        info "SGV configuration already exists in $SHELL_CONFIG_FILE. Skipping shell configuration."
-        
-        # Check if the existing configuration is outdated and suggest manual update
-        if grep -q "SGV wrapper function" "$SHELL_CONFIG_FILE"; then
-            # Check if the wrapper function includes the latest environment variable loading logic
-            if ! grep -A 25 "SGV wrapper function" "$SHELL_CONFIG_FILE" | grep -q "env --shell --clean"; then
-                warn "Your SGV shell configuration might be outdated."
-                warn "Consider removing the old SGV configuration from $SHELL_CONFIG_FILE and re-running this installer."
-            fi
-            # Also check if the session loading part uses --clean
-            if ! grep -A 5 "Load SGV environment" "$SHELL_CONFIG_FILE" | grep -q "env --shell --clean"; then
-                warn "Your SGV session loading configuration might be outdated."
-                warn "Consider removing the old SGV configuration from $SHELL_CONFIG_FILE and re-running this installer."
-            fi
-        fi
-    fi
+    # Update Shell Configuration
+    update_sgv_config "$SHELL_CONFIG_FILE"
 
     # --- Final Instructions ---
     echo -e "\n${GREEN}Installation successful!${NC}"
