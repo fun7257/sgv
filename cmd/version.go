@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/fun7257/sgv/internal/version" // Import the version package
+	"github.com/fun7257/sgv/internal/version"
 	"github.com/spf13/cobra"
 )
 

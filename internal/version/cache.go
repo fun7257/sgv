@@ -18,7 +18,7 @@ type VersionCache struct {
 func NewVersionCache() *VersionCache {
 	return &VersionCache{
 		cacheFile:     filepath.Join(os.TempDir(), "sgv-remote-versions-cache.json"),
-		cacheDuration: 10 * time.Minute,
+		cacheDuration: time.Hour,
 	}
 }
 
