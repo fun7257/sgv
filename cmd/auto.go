@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/fun7257/sgv/internal/version"
@@ -42,11 +43,8 @@ var autoCmd = &cobra.Command{
 		suitableVersionSource := "remote" // Assume remote initially
 
 		// Check if the go.mod version is installed locally
-		for _, lv := range localVersions {
-			if lv == goModVersion {
-				suitableVersionSource = "local"
-				break
-			}
+		if slices.Contains(localVersions, goModVersion) {
+			suitableVersionSource = "local"
 		}
 
 		currentActiveVersion, err := version.GetCurrentVersion()
@@ -61,37 +59,37 @@ var autoCmd = &cobra.Command{
 				return // No output, no switch needed
 			}
 
-            fmt.Printf("go.mod requires Go version: %s\n", goModVersion)
-            msg := fmt.Sprintf("Found suitable version: %s.", suitableVersion)
-            if suitableVersionSource == "remote" {
-                msg += " (Will download and install)"
-            }
-            fmt.Println(msg)
-            fmt.Printf("Switch to this version? (y/n): ")
+			fmt.Printf("go.mod requires Go version: %s\n", goModVersion)
+			msg := fmt.Sprintf("Found suitable version: %s.", suitableVersion)
+			if suitableVersionSource == "remote" {
+				msg += " (Will download and install)"
+			}
+			fmt.Println(msg)
+			fmt.Printf("Switch to this version? (y/n): ")
 
-            var response string
-            _, err := fmt.Scanln(&response)
-            if err != nil {
-                fmt.Fprintf(os.Stderr, "Invalid input: %v\n", err)
-                os.Exit(1)
-            }
+			var response string
+			_, err := fmt.Scanln(&response)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Invalid input: %v\n", err)
+				os.Exit(1)
+			}
 
-            if strings.ToLower(response) == "y" {
-                rootCmd.SetArgs([]string{suitableVersion})
-                if err := rootCmd.Execute(); err != nil {
-                    fmt.Fprintf(os.Stderr, "Error switching to Go version %s: %v\n", suitableVersion, err)
-                    os.Exit(1)
-                }
-            } else {
-                fmt.Println("Switch aborted.")
-            }
-        } else {
-            fmt.Printf("No Go version found (local or remote) that meets the go.mod requirement (%s). Please install a compatible version manually.\n", goModVersion)
-            os.Exit(1)
-        }
-    },
+			if strings.ToLower(response) == "y" {
+				rootCmd.SetArgs([]string{suitableVersion})
+				if err := rootCmd.Execute(); err != nil {
+					fmt.Fprintf(os.Stderr, "Error switching to Go version %s: %v\n", suitableVersion, err)
+					os.Exit(1)
+				}
+			} else {
+				fmt.Println("Switch aborted.")
+			}
+		} else {
+			fmt.Printf("No Go version found (local or remote) that meets the go.mod requirement (%s). Please install a compatible version manually.\n", goModVersion)
+			os.Exit(1)
+		}
+	},
 }
 
 func init() {
-    rootCmd.AddCommand(autoCmd)
+	rootCmd.AddCommand(autoCmd)
 }

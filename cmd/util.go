@@ -30,8 +30,8 @@ func findGoModVersion() (string, error) {
 
 		var goVersion, toolchainVersion string
 
-		lines := strings.Split(string(content), "\n")
-		for _, line := range lines {
+		lines := strings.SplitSeq(string(content), "\n")
+		for line := range lines {
 			if goMatches := goRe.FindStringSubmatch(line); len(goMatches) > 1 {
 				goVersion = "go" + goMatches[1]
 			}
