@@ -106,7 +106,7 @@ sgv version
 sgv 提供了先进的按版本环境变量管理功能：
 
 ```bash
-sgv env                           # 列出当前 Go 版本的环境变量
+sgv env                          # 列出当前 Go 版本的环境变量
 sgv env -w KEY=VALUE             # 为当前 Go 版本设置环境变量
 sgv env -u KEY                   # 删除当前 Go 版本的环境变量
 sgv env -a                       # 列出所有 Go 版本及其环境变量

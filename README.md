@@ -105,7 +105,7 @@ sgv version
 sgv provides sophisticated per-version environment variable management:
 
 ```bash
-sgv env                           # List environment variables for current Go version
+sgv env                          # List environment variables for current Go version
 sgv env -w KEY=VALUE             # Set environment variable for current Go version
 sgv env -u KEY                   # Remove environment variable for current Go version
 sgv env -a                       # List all Go versions with their environment variables
