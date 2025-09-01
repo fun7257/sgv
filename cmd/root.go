@@ -15,12 +15,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	noSwitch bool
+)
+
 var rootCmd = &cobra.Command{
 	Use:   "sgv",
 	Short: "SGV is a Go Version manager",
 	Long: `A fast and flexible Go Version manager built with love by Howell.
 
-This tool allows you to easily install and switch between different Go versions.`,
+This tool allows you to easily install and switch between different Go versions.
+You can also install a version without switching to it by using the --no-switch flag.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		versionStr := args[0]
@@ -36,33 +41,52 @@ This tool allows you to easily install and switch between different Go versions.
 			os.Exit(1)
 		}
 
-		goModVersion, err := findGoModVersion()
-		if err != nil {
-			// If there's an error finding go.mod, it means it's not a Go project or an error occurred.
-			// We will not exit, but continue with the user's requested version.
-			fmt.Fprintf(os.Stderr, "Warning: Could not determine go.mod version: %v\n", err)
-			goModVersion = "" // Ensure goModVersion is empty to skip go.mod related logic
-		}
+		// Only check go.mod compatibility if we intend to switch
+		if !noSwitch {
+			goModVersion, err := findGoModVersion()
+			if err != nil {
+				// If there's an error finding go.mod, it means it's not a Go project or an error occurred.
+				// We will not exit, but continue with the user's requested version.
+				fmt.Fprintf(os.Stderr, "Warning: Could not determine go.mod version: %v\n", err)
+				goModVersion = "" // Ensure goModVersion is empty to skip go.mod related logic
+			}
 
-		if goModVersion != "" {
-			// Compare versions using semver
-			if !isGoVersionCompatible(versionStr, goModVersion) {
-				fmt.Fprintf(os.Stderr, "Error: The requested Go version %s is lower than the go.mod requirement %s. Please switch to a compatible version manually.\n", versionStr, goModVersion)
-				os.Exit(1)
+			if goModVersion != "" {
+				// Compare versions using semver
+				if !isGoVersionCompatible(versionStr, goModVersion) {
+					fmt.Fprintf(os.Stderr, "Error: The requested Go version %s is lower than the go.mod requirement %s. Please switch to a compatible version manually.\n", versionStr, goModVersion)
+					os.Exit(1)
+				}
 			}
 		}
 
 		// Check if version is already installed
 		installPath := filepath.Join(config.VersionsDir, versionStr)
+		isInstalled := true
 		if _, err := os.Stat(installPath); os.IsNotExist(err) {
+			isInstalled = false
+		} else if err != nil {
+			fmt.Fprintf(os.Stderr, "Error checking installation path: %v\n", err)
+			os.Exit(1)
+		}
+
+		// If the version is not installed, install it.
+		if !isInstalled {
 			fmt.Printf("Go version %s not found locally. Installing...\n", versionStr)
 			if err := installer.Install(versionStr); err != nil {
 				fmt.Fprintf(os.Stderr, "Error installing Go version %s: %v\n", versionStr, err)
 				os.Exit(1)
 			}
-		} else if err != nil {
-			fmt.Fprintf(os.Stderr, "Error checking installation path: %v\n", err)
-			os.Exit(1)
+		}
+
+		// If --no-switch is used, we're done.
+		if noSwitch {
+			if !isInstalled {
+				fmt.Printf("Successfully installed Go version %s. Use 'sgv %s' to switch to it.\n", versionStr, strings.TrimPrefix(versionStr, "go"))
+			} else {
+				fmt.Printf("Go version %s is already installed.\n", versionStr)
+			}
+			return
 		}
 
 		// Switch to the specified version
@@ -90,6 +114,7 @@ func Execute() {
 func init() {
 	checkPlatformSupport()
 	cobra.OnInitialize(config.Init)
+	rootCmd.Flags().BoolVar(&noSwitch, "no-switch", false, "Install a Go version without switching to it")
 }
 
 // checkPlatformSupport ensures the current platform is supported

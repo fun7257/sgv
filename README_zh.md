@@ -47,10 +47,11 @@ sgv <version>
 ### 仅安装（不切换）
 
 ```bash
-sgv install <version>
+sgv <version> --no-switch
 ```
-- 例：`sgv install 1.22.1`
-- 仅下载安装，不切换当前版本
+- 例：`sgv 1.22.1 --no-switch`
+- 仅下载安装版本，但不切换。
+- 如果版本已安装，则不执行任何操作。
 
 ### 自动切换（基于 go.mod）
 
@@ -89,10 +90,11 @@ sgv sub <major_version>
 ### 卸载 Go 版本
 
 ```bash
-sgv uninstall <version>
+sgv rm <version...>
 ```
-- 例：`sgv uninstall 1.22.1`
-- 不能卸载当前激活版本
+- 示例 1 (指定版本): `sgv rm 1.22.1 1.21.7`
+- 示例 2 (按主版本): `sgv rm 1.22` (将删除所有已安装的 1.22.x 版本)
+- 不能卸载当前激活的版本。
 
 ### 显示 sgv 版本
 

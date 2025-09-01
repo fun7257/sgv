@@ -46,10 +46,11 @@ sgv <version>
 ### Install Only (Do Not Switch)
 
 ```bash
-sgv install <version>
+sgv <version> --no-switch
 ```
-- Example: `sgv install 1.22.1`
-- Downloads and installs the version, but does not switch
+- Example: `sgv 1.22.1 --no-switch`
+- Downloads and installs the version, but does not switch to it.
+- If the version is already installed, it will do nothing.
 
 ### Auto Switch (Based on go.mod)
 
@@ -88,10 +89,11 @@ sgv sub <major_version>
 ### Uninstall a Go Version
 
 ```bash
-sgv uninstall <version>
+sgv rm <version...>
 ```
-- Example: `sgv uninstall 1.22.1`
-- Cannot uninstall the currently active version
+- Example 1 (specific versions): `sgv rm 1.22.1 1.21.7`
+- Example 2 (major version): `sgv rm 1.22` (removes all installed 1.22.x versions)
+- Cannot uninstall the currently active version.
 
 ### Show sgv Version
 

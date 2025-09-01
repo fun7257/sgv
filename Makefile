@@ -3,14 +3,9 @@ test:
 
 build: test
 	go build -o sgv .
+	sudo cp sgv /usr/local/bin/sgv
 
 clean:
 	rm -f sgv
 
-install:
-	go install .
-
-local: build
-	sudo cp sgv /usr/local/bin/sgv
-
-.PHONY: build clean install test local
+.PHONY: build clean test
