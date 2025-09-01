@@ -3,10 +3,9 @@ version: 2
 updates:
   # 1. 检查 Go 模块 (go.mod)
   - package-ecosystem: "gomod"
-    directory: "/" # 假设你的 go.mod 在项目根目录
+    directory: "/" 
     schedule:
-      interval: "weekly" # 每周检查一次
-    # 当有更新时，在 PR 中自动 @ 你
+      interval: "weekly"
     reviewers:
       - "fun7257"
     assignees:
@@ -14,9 +13,9 @@ updates:
 
   # 2. 检查 GitHub Actions (CI/CD 工作流)
   - package-ecosystem: "github-actions"
-    directory: "/" # 检查根目录下的 .github/workflows
+    directory: "/"
     schedule:
-      interval: "weekly" # 每周检查一次
+      interval: "weekly"
     reviewers:
       - "fun7257"
     assignees:
