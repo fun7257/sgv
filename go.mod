@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/fatih/color v1.18.0
 	github.com/manifoldco/promptui v0.9.0
-	github.com/samber/lo v1.51.0
+	github.com/samber/lo v1.52.0
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/spf13/cobra v1.10.1
 	golang.org/x/mod v0.28.0
