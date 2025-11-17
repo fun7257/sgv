@@ -8,7 +8,7 @@ require (
 	github.com/samber/lo v1.51.0
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/spf13/cobra v1.10.1
-	golang.org/x/mod v0.28.0
+	golang.org/x/mod v0.30.0
 )
 
 require (
